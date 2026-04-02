@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NextLocal CRM</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f1eb;color:#1a1a1a;min-height:100vh;display:flex}
+:root{--blue:#1B8DC4;--blue-light:#e6f4fb;--green:#3a9e5f;--green-light:#eaf6ee;--red:#d94f3d;--red-light:#fdecea;--amber:#e0922b;--amber-light:#fdf3e3;--surface:#fff;--border:#e8e4dc;--radius:10px}
+#sidebar{width:200px;background:#1a1a1a;padding:20px 0;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh}
+.logo{padding:0 16px 18px;border-bottom:1px solid #2e2e2e;margin-bottom:8px}
+.logo-name{font-size:16px;font-weight:600;color:#fff}
+.logo-sub{font-size:10px;color:#888;margin-top:2px}
+.nav{padding:8px;flex:1}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.ni:hover{background:#2e2e2e;color:#fff}
+.ni.active{background:var(--blue);color:#fff}
+.sidebar-bottom{padding:8px 8px 0;border-top:1px solid #2e2e2e;margin-top:8px}
+#main{flex:1;padding:24px;overflow-y:auto;min-width:0}
+.page{display:none}.page.active{display:block}
+.pt{font-size:20px;font-weight:600;margin-bottom:4px}
+.ps{font-size:13px;color:#777;margin-bottom:18px}
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:14px}
+.top-bar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap}
+.btn{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:inherit;white-space:nowrap;display:inline-block}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:#1577a8}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn-ghost{background:#f0ede6;color:#444;border:1px solid var(--border)}.btn-ghost:hover{background:#e8e4dc}
+.btn-danger{background:#fff0ef;color:var(--red);border:1px solid #fccfca}
+.btn-success{background:var(--green-light);color:var(--green);border:1px solid #b8dfc8}
+.btn-purple{background:#f0eeff;color:#5a4fcf;border:1px solid #c9c3f5}
+input,select,textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue)}
+label{font-size:12px;font-weight:500;color:#555;display:block;margin-bottom:4px}
+.fr{display:grid;gap:10px;margin-bottom:10px}
+.f2{grid-template-columns:1fr 1fr}.f3{grid-template-columns:1fr 1fr 1fr}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-pending{background:var(--amber-light);color:var(--amber)}
+.tag-paid{background:var(--green-light);color:var(--green)}
+.tag-upcoming{background:var(--blue-light);color:var(--blue)}
+.tag-done{background:#f0ede6;color:#777}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:7px 11px;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)}
+td{padding:9px 11px;border-bottom:1px solid #f4f1eb;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf8}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;width:520px;max-width:100%;max-height:88vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:16px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.empty{text-align:center;padding:36px 20px;color:#bbb;font-size:13px}
+.rev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.rev-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.rev-label{font-size:10px;color:#888;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.rev-val{font-size:22px;font-weight:600;color:var(--green)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sec-label{font-size:12px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
+.mini-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f4f1eb;align-items:center}
+.mini-row:last-child{border-bottom:none}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-month{font-size:16px;font-weight:600}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border-radius:8px;overflow:hidden}
+.cal-dow{background:#f8f6f2;text-align:center;font-size:11px;font-weight:600;color:#888;padding:7px 0;text-transform:uppercase;letter-spacing:.4px}
+.cal-cell{background:var(--surface);min-height:76px;padding:6px;vertical-align:top}
+.cal-cell.other{background:#faf9f6}
+.cal-cell.today-cell{background:#e6f4fb}
+.cal-num{font-size:12px;font-weight:600;color:#333;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin-bottom:3px}
+.cal-cell.today-cell .cal-num{background:var(--blue);color:#fff;border-radius:50%;font-size:11px}
+.cal-pill{background:var(--blue);color:#fff;border-radius:4px;font-size:10px;padding:2px 5px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-pill.done{background:#bbb}
+.knock-btn{width:100%;padding:30px;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;border:none;font-family:inherit;background:var(--blue);color:#fff;transition:all .15s;margin-bottom:16px}
+.knock-btn:hover{background:#1577a8}.knock-btn:active{transform:scale(.98)}
+.knock-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.kopt{padding:22px 10px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:2px solid;font-family:inherit;transition:all .15s;text-align:center;line-height:1.8}
+.kopt.yes{border-color:var(--green);color:var(--green);background:var(--green-light)}.kopt.yes:hover{background:#c8e8d4}
+.kopt.no{border-color:var(--red);color:var(--red);background:var(--red-light)}.kopt.no:hover{background:#f9cdc9}
+.kopt.na{border-color:#aaa;color:#666;background:#f4f4f4}.kopt.na:hover{background:#e8e8e8}
+.kstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.kstat{background:#f8f6f2;border-radius:8px;padding:12px;text-align:center}
+.kstat-val{font-size:22px;font-weight:700}.kstat-lbl{font-size:10px;color:#888;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}
+.hist-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f4f1eb;font-size:13px}
+.hist-row:last-child{border-bottom:none}
+.timer-display{font-size:52px;font-weight:700;text-align:center;letter-spacing:-2px;padding:20px 0 14px;font-variant-numeric:tabular-nums}
+.timer-btns{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.timer-btn{padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.tbstart{background:var(--green);color:#fff}.tbstart:hover{background:#2e8a4f}
+.tbstop{background:var(--red);color:#fff}.tbstop:hover{background:#c04030}
+.tbreset{background:#f0ede6;color:#555;border:1px solid var(--border)}
+.avg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.avg-card{background:#f8f6f2;border-radius:8px;padding:14px;text-align:center}
+.avg-val{font-size:20px;font-weight:700;color:var(--blue)}.avg-lbl{font-size:11px;color:#888;margin-top:3px}
+.filters{display:flex;gap:6px;margin-bottom:14px}
+.tab-bar{display:flex;gap:4px;margin-bottom:16px;background:#f0ede6;border-radius:9px;padding:4px}
+.tab-btn{flex:1;padding:7px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;background:none;color:#777;transition:all .15s}
+.tab-btn.active{background:#fff;color:#1a1a1a;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.inv-preview{background:#f8f8f6;border-radius:7px;padding:14px;margin-top:10px;font-size:12px;border:1px solid var(--border)}
+.step{display:none}.step.active{display:block}
+/* Contacts */
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.contact-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.contact-avatar{width:40px;height:40px;border-radius:50%;background:var(--blue-light);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.contact-info{flex:1;min-width:0}
+.contact-name{font-weight:600;font-size:14px;margin-bottom:2px}
+.contact-detail{font-size:12px;color:#777;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Print invoice */
+@media print {
+  body > *{display:none!important}
+  #print-area{display:block!important}
+}
+#print-area{display:none;position:fixed;inset:0;background:#fff;z-index:9999;padding:40px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-name">NextLocal</div>
+    <div class="logo-sub">Folsom Home Services</div>
+  </div>
+  <div class="nav">
+    <button class="ni active" onclick="nav('dashboard',this)">&#9638; Dashboard</button>
+    <button class="ni" onclick="nav('invoices',this)">&#9672; Invoices</button>
+    <button class="ni" onclick="nav('schedule',this)">&#9711; Schedule</button>
+    <button class="ni" onclick="nav('calendar',this)">&#9635; Calendar</button>
+    <button class="ni" onclick="nav('contacts',this)">&#9786; Contacts</button>
+    <button class="ni" onclick="nav('doors',this)">&#8962; Door Knocking</button>
+    <button class="ni" onclick="nav('timing',this)">&#9201; Timing</button>
+  </div>
+  <div class="sidebar-bottom">
+    <button class="ni" onclick="exportData()" style="color:#aaa;font-size:12px">&#8593; Export Data</button>
+    <button class="ni" onclick="g('import-file').click()" style="color:#aaa;font-size:12px">&#8595; Import Data</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+  </div>
+</div>
+
+<div id="main">
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="pt">Dashboard</div>
+    <div class="ps">Revenue overview and recent activity.</div>
+    <div class="rev-grid">
+      <div class="rev-card"><div class="rev-label">Today</div><div class="rev-val" id="rev-today">$0</div></div>
+      <div class="rev-card"><div class="rev-label">Last 7 Days</div><div class="rev-val" id="rev-week">$0</div></div>
+      <div class="rev-card"><div class="rev-label">This Month</div><div class="rev-val" id="rev-month">$0</div></div>
+      <div class="rev-card"><div class="rev-label">All Time</div><div class="rev-val" id="rev-all">$0</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card"><div class="sec-label">Recent Jobs</div><div id="dash-jobs"></div></div>
+      <div class="card"><div class="sec-label">Recent Invoices</div><div id="dash-invs"></div></div>
+    </div>
+  </div>
+
+  <!-- INVOICES -->
+  <div id="page-invoices" class="page">
+    <div class="top-bar">
+      <div><div class="pt">Invoices</div><div class="ps">Create, send, and track your quotes.</div></div>
+      <button class="btn btn-primary" onclick="openInvModal()">+&nbsp; New Invoice</button>
+    </div>
+    <div class="filters">
+      <button class="btn btn-sm btn-primary" onclick="filterInv('all',this)">All</button>
+      <button class="btn btn-sm btn-ghost" onclick="filterInv('pending',this)">Pending</button>
+      <button class="btn btn-sm btn-ghost" onclick="filterInv('paid',this)">Paid</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="inv-table"></div></div>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div id="page-schedule" class="page">
+    <div class="top-bar">
+      <div><div class="pt">Schedule</div><div class="ps">Track upcoming and completed jobs.</div></div>
+      <button class="btn btn-primary" onclick="openJobModal()">+&nbsp; Schedule Job</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="job-table"></div></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div id="page-calendar" class="page">
+    <div class="pt">Calendar</div>
+    <div class="ps">Your jobs at a glance.</div>
+    <div class="card">
+      <div class="cal-nav">
+        <button class="btn btn-ghost btn-sm" onclick="calPrev()">&#8249; Prev</button>
+        <div class="cal-month" id="cal-title"></div>
+        <button class="btn btn-ghost btn-sm" onclick="calNext()">Next &#8250;</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+  </div>
+
+  <!-- CONTACTS -->
+  <div id="page-contacts" class="page">
+    <div class="top-bar">
+      <div><div class="pt">Contacts</div><div class="ps">All your clients in one place.</div></div>
+      <button class="btn btn-primary" onclick="openContactModal()">+&nbsp; Add Contact</button>
+    </div>
+    <div class="card" style="padding:12px 16px;margin-bottom:14px">
+      <input type="text" id="contact-search" placeholder="Search by name, phone, or address..." oninput="renderContacts()" style="border:1px solid var(--border)">
+    </div>
+    <div id="contact-grid" class="contact-grid"></div>
+  </div>
+
+  <!-- DOOR KNOCKING -->
+  <div id="page-doors" class="page">
+    <div class="pt">Door Knocking</div>
+    <div class="ps">Track every door, every day.</div>
+    <div class="card">
+      <div class="sec-label" id="knock-date-label"></div>
+      <div class="kstats">
+        <div class="kstat"><div class="kstat-val" id="k-total">0</div><div class="kstat-lbl">Doors</div></div>
+        <div class="kstat"><div class="kstat-val green" id="k-yes">0</div><div class="kstat-lbl">Interested</div></div>
+        <div class="kstat"><div class="kstat-val red" id="k-no">0</div><div class="kstat-lbl">No</div></div>
+        <div class="kstat"><div class="kstat-val amber" id="k-na">0</div><div class="kstat-lbl">No Answer</div></div>
+      </div>
+      <div id="knock-ready">
+        <button class="knock-btn" onclick="knockDoor()">&#128682;&nbsp; Knocked a Door</button>
+      </div>
+      <div id="knock-result" style="display:none">
+        <p style="text-align:center;font-size:14px;color:#555;margin-bottom:12px;font-weight:500">What was the result?</p>
+        <div class="knock-opts">
+          <button class="kopt yes" onclick="saveKnock('yes')">&#10003;<br>Interested</button>
+          <button class="kopt no" onclick="saveKnock('no')">&#10005;<br>Not Interested</button>
+          <button class="kopt na" onclick="saveKnock('na')">?<br>No Answer</button>
+        </div>
+        <div style="text-align:center"><button class="btn btn-ghost btn-sm" onclick="cancelKnock()">Cancel</button></div>
+      </div>
+    </div>
+    <div class="card"><div class="sec-label">History</div><div id="knock-history"></div></div>
+  </div>
+
+  <!-- TIMING -->
+  <div id="page-timing" class="page">
+    <div class="pt">Timing</div>
+    <div class="ps">Track time spent cleaning and door knocking.</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="timingTab('cleaning',this)">&#129529; Cleaning</button>
+      <button class="tab-btn" onclick="timingTab('knocking',this)">&#128682; Door Knocking</button>
+    </div>
+    <div class="card">
+      <div class="sec-label" id="timer-label">Cleaning Timer</div>
+      <div class="timer-display" id="timer-display">00:00:00</div>
+      <div class="timer-btns">
+        <button class="timer-btn tbstart" id="btn-start" onclick="timerStart()">&#9654; Start</button>
+        <button class="timer-btn tbstop" id="btn-stop" onclick="timerStop()" style="display:none">&#9632; Stop &amp; Save</button>
+        <button class="timer-btn tbreset" onclick="timerReset()">Reset</button>
+      </div>
+    </div>
+    <div class="avg-grid">
+      <div class="avg-card"><div class="avg-val" id="t-avg">0s</div><div class="avg-lbl">Avg per session</div></div>
+      <div class="avg-card"><div class="avg-val" id="t-today">0s</div><div class="avg-lbl">Today total</div></div>
+      <div class="avg-card"><div class="avg-val" id="t-count">0</div><div class="avg-lbl">Sessions logged</div></div>
+      <div class="avg-card"><div class="avg-val" id="t-total">0s</div><div class="avg-lbl">All time total</div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="sec-label">Session History</div><div id="timing-history"></div></div>
+  </div>
+
+</div>
+
+<!-- PRINT AREA (hidden until download) -->
+<div id="print-area"></div>
+
+<!-- INVOICE MODAL -->
+<div class="modal-overlay" id="inv-modal">
+  <div class="modal">
+    <div class="modal-title">New Invoice</div>
+    <div id="inv-step1" class="step active">
+      <p style="font-size:13px;color:#666;margin-bottom:10px">Describe the job and I'll build the invoice.</p>
+      <textarea id="inv-prompt" style="border:2px solid var(--blue);border-radius:9px;padding:11px;font-size:13px;resize:vertical;min-height:80px;width:100%;font-family:inherit" placeholder='e.g. "Invoice for Sarah at 123 Oak St, phone 916-555-1234. House wash $586 and window cleaning $399, total $985."'></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeInvModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="generateInv()">Generate</button>
+      </div>
+    </div>
+    <div id="inv-step2" class="step">
+      <div class="fr f2">
+        <div><label>Client</label><input id="inv-client" type="text"></div>
+        <div><label>Phone</label><input id="inv-phone" type="text"></div>
+      </div>
+      <div class="fr f2">
+        <div><label>Address</label><input id="inv-address" type="text"></div>
+        <div><label>Email</label><input id="inv-email" type="text" placeholder="optional"></div>
+      </div>
+      <div class="fr f2">
+        <div><label>Date</label><input id="inv-date" type="date"></div>
+        <div><label>Status</label><select id="inv-status"><option value="pending">Pending</option><option value="paid">Paid</option></select></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>Services</label>
+        <div id="inv-services"></div>
+        <button class="btn btn-sm btn-ghost" style="margin-top:4px" onclick="addInvLine()">+ Add line</button>
+      </div>
+      <div class="inv-preview" id="inv-preview"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="invBack()">&#8592; Back</button>
+        <button class="btn btn-primary" onclick="saveInv()">Save Invoice</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOB MODAL -->
+<div class="modal-overlay" id="job-modal">
+  <div class="modal">
+    <div class="modal-title">Schedule a Job</div>
+    <div class="fr f2">
+      <div><label>Client name</label><input id="j-client" type="text"></div>
+      <div><label>Service</label><input id="j-service" type="text" placeholder="e.g. House Wash + Windows"></div>
+    </div>
+    <div class="fr"><div><label>Address</label><input id="j-address" type="text"></div></div>
+    <div class="fr f3">
+      <div><label>Date</label><input id="j-date" type="date"></div>
+      <div><label>Time</label><input id="j-time" type="text" placeholder="9:00 AM"></div>
+      <div><label>Price ($)</label><input id="j-price" type="number" placeholder="985"></div>
+    </div>
+    <div class="fr f2">
+      <div><label>Status</label><select id="j-status"><option value="upcoming">Upcoming</option><option value="done">Done</option></select></div>
+      <div><label>Notes</label><input id="j-notes" type="text" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeJobModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveJob()">Save Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT MODAL -->
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal">
+    <div class="modal-title" id="contact-modal-title">Add Contact</div>
+    <div class="fr f2">
+      <div><label>Name</label><input id="c-name" type="text"></div>
+      <div><label>Phone</label><input id="c-phone" type="text"></div>
+    </div>
+    <div class="fr f2">
+      <div><label>Email</label><input id="c-email" type="text"></div>
+      <div><label>Address</label><input id="c-address" type="text"></div>
+    </div>
+    <div class="fr"><div><label>Notes</label><textarea id="c-notes" style="min-height:60px;resize:vertical" placeholder="Any notes about this client..."></textarea></div></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeContactModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact()">Save Contact</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var KEY='nextlocal_crm_v5';
+var DB=(function(){try{var d=localStorage.getItem(KEY);return d?JSON.parse(d):{invoices:[],jobs:[],knockData:{},timingData:{cleaning:[],knocking:[]},contacts:[]};}catch(e){return{invoices:[],jobs:[],knockData:{},timingData:{cleaning:[],knocking:[]},contacts:[]};}}());
+if(!DB.contacts)DB.contacts=[];
+if(!DB.knockData)DB.knockData={};
+if(!DB.timingData)DB.timingData={cleaning:[],knocking:[]};
+
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){alert('Storage full! Export your data to back it up.');}}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function fmt(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return pad(h)+':'+pad(m)+':'+pad(sec);}
+function pad(n){return String(n).padStart(2,'0');}
+function fmtMin(s){if(!s)return'0s';if(s<60)return s+'s';if(s<3600)return Math.round(s/60)+'m';return Math.floor(s/3600)+'h '+Math.round((s%3600)/60)+'m';}
+function money(n){return'$'+Number(n||0).toLocaleString();}
+function g(id){return document.getElementById(id);}
+function initials(name){return(name||'?').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── EXPORT / IMPORT ──
+function exportData(){
+  var json=JSON.stringify(DB,null,2);
+  var encoded='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+  var a=document.createElement('a');
+  a.href=encoded;
+  a.download='NextLocal_backup_'+todayStr()+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+function importData(input){
+  var file=input.files[0]; if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var parsed=JSON.parse(e.target.result);
+      if(!parsed.invoices&&!parsed.jobs){alert('Invalid backup file.');return;}
+      DB=parsed;
+      if(!DB.contacts)DB.contacts=[];
+      if(!DB.knockData)DB.knockData={};
+      if(!DB.timingData)DB.timingData={cleaning:[],knocking:[]};
+      persist();
+      alert('Data imported! Refreshing...');
+      location.reload();
+    }catch(err){alert('Could not read file. Make sure it\'s a NextLocal backup.');}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+// ── NAV ──
+function nav(page,btn){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.ni').forEach(function(b){b.classList.remove('active');});
+  g('page-'+page).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(page==='dashboard')renderDash();
+  if(page==='invoices')renderInvTable(invFilter);
+  if(page==='schedule')renderJobTable();
+  if(page==='calendar')renderCalendar();
+  if(page==='contacts')renderContacts();
+  if(page==='doors')renderDoors();
+  if(page==='timing')renderTiming();
+}
+
+// ── DASHBOARD ──
+function renderDash(){
+  var td=todayStr(),now=new Date();
+  var start7=new Date(now);start7.setDate(now.getDate()-6);
+  var startM=new Date(now.getFullYear(),now.getMonth(),1);
+  var items=[];
+  DB.jobs.filter(function(j){return j.status==='done'&&j.price>0;}).forEach(function(j){items.push({date:j.date,amt:Number(j.price)});});
+  DB.invoices.filter(function(i){return i.status==='paid';}).forEach(function(i){items.push({date:i.date,amt:Number(i.total)});});
+  function sum(fn){return items.filter(fn).reduce(function(s,i){return s+i.amt;},0);}
+  g('rev-today').textContent=money(sum(function(i){return i.date===td;}));
+  g('rev-week').textContent=money(sum(function(i){return new Date(i.date+'T12:00:00')>=start7;}));
+  g('rev-month').textContent=money(sum(function(i){return new Date(i.date+'T12:00:00')>=startM;}));
+  g('rev-all').textContent=money(sum(function(){return true;}));
+  var jobs=[].concat(DB.jobs).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,4);
+  g('dash-jobs').innerHTML=jobs.length?jobs.map(function(j){return'<div class="mini-row"><div><div style="font-weight:500;font-size:13px">'+esc(j.client)+'</div><div style="font-size:11px;color:#aaa">'+j.date+'</div></div><div style="text-align:right">'+(j.price?'<div style="font-weight:600;font-size:13px;color:var(--green)">'+money(j.price)+'</div>':'')+'<span class="tag tag-'+j.status+'">'+j.status+'</span></div></div>';}).join(''):'<div class="empty">No jobs yet</div>';
+  var invs=[].concat(DB.invoices).reverse().slice(0,4);
+  g('dash-invs').innerHTML=invs.length?invs.map(function(i){return'<div class="mini-row"><div><div style="font-weight:500;font-size:13px">'+esc(i.client)+'</div><div style="font-size:11px;color:#aaa">'+i.date+'</div></div><div style="text-align:right"><div style="font-weight:600;font-size:13px">'+money(i.total)+'</div><span class="tag tag-'+i.status+'">'+i.status+'</span></div></div>';}).join(''):'<div class="empty">No invoices yet</div>';
+}
+
+// ── INVOICES ──
+var invFilter='all',invDraft=null,invLines=[];
+
+function filterInv(f,btn){
+  invFilter=f;
+  document.querySelectorAll('#page-invoices .filters .btn').forEach(function(b){b.className='btn btn-sm btn-ghost';});
+  btn.className='btn btn-sm btn-primary';
+  renderInvTable(f);
+}
+
+function renderInvTable(f){
+  var list=f==='all'?DB.invoices:DB.invoices.filter(function(i){return i.status===f;});
+  if(!list.length){g('inv-table').innerHTML='<div class="empty">No invoices yet.</div>';return;}
+  g('inv-table').innerHTML='<table><thead><tr><th>Client</th><th>Services</th><th>Total</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>'+
+    list.map(function(inv){
+      return'<tr><td><div style="font-weight:500">'+esc(inv.client)+'</div><div style="font-size:11px;color:#aaa">'+esc(inv.phone||'')+'</div></td>'+
+        '<td>'+esc(inv.services.map(function(s){return s.desc;}).join(', '))+'</td>'+
+        '<td><strong>'+money(inv.total)+'</strong></td>'+
+        '<td>'+inv.date+'</td>'+
+        '<td><span class="tag tag-'+inv.status+'">'+inv.status+'</span></td>'+
+        '<td><div style="display:flex;gap:5px;flex-wrap:wrap">'+
+          '<button class="btn btn-sm btn-purple" onclick="printInvoice(\''+inv.id+'\')">&#8681; Download</button>'+
+          (inv.status==='pending'?'<button class="btn btn-sm btn-success" onclick="markPaid(\''+inv.id+'\')">Mark paid</button>':'')+
+          '<button class="btn btn-sm btn-danger" onclick="delInv(\''+inv.id+'\')">Delete</button>'+
+        '</div></td></tr>';
+    }).join('')+
+  '</tbody></table>';
+}
+
+function openInvModal(){
+  invDraft=null;invLines=[];g('inv-prompt').value='';
+  g('inv-step1').className='step active';g('inv-step2').className='step';
+  g('inv-modal').classList.add('open');
+}
+function closeInvModal(){g('inv-modal').classList.remove('open');}
+
+function generateInv(){
+  var text=g('inv-prompt').value;
+  var m1=text.match(/(?:for|client[:\s]+)\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+  var client=m1?m1[1]:'';
+  var m2=text.match(/(\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4})/);
+  var phone=m2?m2[1]:'';
+  var m3=text.match(/(?:at\s+|address[:\s]+)([0-9][^,\.]+)/i);
+  var addr=m3?m3[1].trim():'';
+  var m4=text.match(/\$?([\d,]+)\s*total/i)||text.match(/total[:\s]+\$?([\d,]+)/i);
+  var total=m4?parseFloat(m4[1].replace(',','')):0;
+  invLines=[];
+  var re=/([a-zA-Z][a-zA-Z\s]{3,}?)\s+\$?([\d,]+(?:\.\d+)?)/g,m;
+  while((m=re.exec(text))!==null){var amt=parseFloat(m[2].replace(',',''));if(amt>0&&amt<total)invLines.push({desc:m[1].trim().replace(/^and /i,''),amt:amt});}
+  if(!invLines.length&&total>0)invLines.push({desc:'Services',amt:total});
+  invDraft={id:Date.now(),client:client,phone:phone,address:addr,email:'',services:invLines,total:total,date:todayStr(),status:'pending'};
+  g('inv-client').value=client;g('inv-phone').value=phone;g('inv-address').value=addr;g('inv-email').value='';
+  g('inv-date').value=todayStr();g('inv-status').value='pending';
+  // Auto-fill from contacts
+  var contact=DB.contacts.find(function(c){return c.name&&client&&c.name.toLowerCase()===client.toLowerCase();});
+  if(contact){if(!phone&&contact.phone)g('inv-phone').value=contact.phone;if(!addr&&contact.address)g('inv-address').value=contact.address;if(contact.email)g('inv-email').value=contact.email;}
+  renderInvLines();updateInvPreview();
+  g('inv-step1').className='step';g('inv-step2').className='step active';
+}
+
+function renderInvLines(){
+  g('inv-services').innerHTML=invLines.map(function(s,i){
+    return'<div style="display:flex;gap:7px;margin-bottom:5px">'+
+      '<input style="flex:1" placeholder="Description" value="'+esc(s.desc)+'" oninput="invLines['+i+'].desc=this.value;updateInvPreview()">'+
+      '<input style="width:85px" type="number" placeholder="$" value="'+s.amt+'" oninput="invLines['+i+'].amt=parseFloat(this.value)||0;recalcTotal();updateInvPreview()">'+
+      '<button class="btn btn-sm btn-danger" onclick="removeInvLine('+i+')">x</button></div>';
+  }).join('');
+}
+function addInvLine(){invLines.push({desc:'',amt:0});renderInvLines();updateInvPreview();}
+function removeInvLine(i){invLines.splice(i,1);recalcTotal();renderInvLines();updateInvPreview();}
+function recalcTotal(){if(invDraft)invDraft.total=invLines.reduce(function(t,s){return t+s.amt;},0);}
+
+function updateInvPreview(){
+  if(!invDraft)return;
+  invDraft.client=g('inv-client').value;invDraft.phone=g('inv-phone').value;
+  invDraft.address=g('inv-address').value;invDraft.email=g('inv-email').value;
+  invDraft.date=g('inv-date').value;invDraft.status=g('inv-status').value;
+  invDraft.services=invLines;recalcTotal();
+  g('inv-preview').innerHTML=buildInvHTML(invDraft,true);
+}
+function invBack(){g('inv-step1').className='step active';g('inv-step2').className='step';}
+
+function saveInv(){
+  if(!invDraft)return;
+  invDraft.client=g('inv-client').value;invDraft.phone=g('inv-phone').value;
+  invDraft.address=g('inv-address').value;invDraft.email=g('inv-email').value;
+  invDraft.date=g('inv-date').value;invDraft.status=g('inv-status').value;
+  invDraft.services=invLines;recalcTotal();
+  DB.invoices.push(invDraft);
+  // Auto-save to contacts
+  autoSaveContact(invDraft.client,invDraft.phone,invDraft.address,invDraft.email);
+  persist();closeInvModal();renderInvTable(invFilter);
+}
+
+function markPaid(id){var inv=DB.invoices.find(function(i){return i.id==id;});if(inv){inv.status='paid';persist();renderInvTable(invFilter);}}
+function delInv(id){if(!confirm('Delete this invoice?'))return;DB.invoices=DB.invoices.filter(function(i){return i.id!=id;});persist();renderInvTable(invFilter);}
+
+// ── INVOICE HTML BUILDER ──
+function buildInvHTML(inv,compact){
+  var billParts=[inv.address,inv.phone,inv.email].filter(Boolean);
+  var rows=inv.services.map(function(s){return'<tr><td style="padding:6px 8px;border-bottom:1px solid #eee">'+esc(s.desc||'&mdash;')+'</td><td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right">'+money(s.amt)+'</td></tr>';}).join('');
+  return(compact?'':'<div style="max-width:680px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">')+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">'+
+      '<div><div style="font-size:'+(compact?'15':'28')+'px;font-weight:700;color:#1B8DC4">NextLocal</div>'+
+      '<div style="font-size:'+(compact?'10':'13')+'px;color:#888;margin-top:2px">Folsom Home Services</div>'+
+      '<div style="font-size:'+(compact?'10':'12')+'px;color:#888">(916) 260-6540</div>'+
+      '<div style="font-size:'+(compact?'10':'12')+'px;color:#888">My.nextlocal@gmail.com</div></div>'+
+      '<div style="text-align:right;font-size:'+(compact?'10':'12')+'px;color:#888">'+
+        '<div style="font-size:'+(compact?'13':'18')+'px;font-weight:700;color:#333;margin-bottom:4px">INVOICE</div>'+
+        '<div>#NL-'+String(inv.id).slice(-5)+'</div><div>'+inv.date+'</div></div></div>'+
+    '<div style="border-top:2px solid #1B8DC4;margin-bottom:16px"></div>'+
+    '<div style="margin-bottom:16px;font-size:'+(compact?'11':'13')+'px"><strong>Bill to:</strong><br>'+
+      '<span style="font-weight:600">'+esc(inv.client)+'</span>'+
+      (billParts.length?'<br>'+billParts.map(esc).join('<br>'):'')+'</div>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:'+(compact?'12':'13')+'px;margin-bottom:12px">'+
+      '<thead><tr><th style="background:#1B8DC4;color:#fff;padding:8px;text-align:left">Description</th><th style="background:#1B8DC4;color:#fff;padding:8px;text-align:right">Amount</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table>'+
+    '<div style="display:flex;justify-content:flex-end"><div style="background:#1B8DC4;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;font-size:'+(compact?'13':'15')+'px">Total: '+money(inv.total)+'</div></div>'+
+    '<div style="margin-top:20px;font-size:'+(compact?'10':'12')+'px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Payment accepted: Cash, Check, Zelle &bull; Thank you for your business!</div>'+
+    (compact?'':'</div>');
+}
+
+// ── PRINT / DOWNLOAD INVOICE ──
+function printInvoice(id){
+  var inv=DB.invoices.find(function(i){return i.id==id;});
+  if(!inv)return;
+  var win=window.open('','_blank');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Invoice '+esc(inv.client)+'</title>'+
+    '<style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:40px;max-width:700px;margin:0 auto;color:#1a1a1a}@media print{.no-print{display:none}}</style></head><body>'+
+    '<div class="no-print" style="margin-bottom:20px;display:flex;gap:10px">'+
+      '<button onclick="window.print()" style="padding:10px 20px;background:#1B8DC4;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">&#128438; Print / Save as PDF</button>'+
+      '<button onclick="window.close()" style="padding:10px 20px;background:#f0ede6;border:1px solid #e8e4dc;border-radius:8px;font-size:14px;cursor:pointer">Close</button>'+
+    '</div>'+
+    buildInvHTML(inv,false)+
+    '</body></html>');
+  win.document.close();
+}
+
+// ── SCHEDULE ──
+function openJobModal(){
+  ['j-client','j-service','j-address','j-time','j-notes'].forEach(function(id){g(id).value='';});
+  g('j-date').value=todayStr();g('j-price').value='';g('j-status').value='upcoming';
+  g('job-modal').classList.add('open');
+}
+function closeJobModal(){g('job-modal').classList.remove('open');}
+function saveJob(){
+  var job={id:Date.now(),client:g('j-client').value,service:g('j-service').value,address:g('j-address').value,date:g('j-date').value,time:g('j-time').value,price:parseFloat(g('j-price').value)||0,status:g('j-status').value,notes:g('j-notes').value};
+  DB.jobs.push(job);
+  autoSaveContact(job.client,'',job.address,'');
+  persist();closeJobModal();renderJobTable();
+}
+function renderJobTable(){
+  var sorted=[].concat(DB.jobs).sort(function(a,b){return a.date.localeCompare(b.date);});
+  if(!sorted.length){g('job-table').innerHTML='<div class="empty">No jobs yet &mdash; click &quot;+ Schedule Job&quot; to add one.</div>';return;}
+  g('job-table').innerHTML='<table><thead><tr><th>Client</th><th>Date</th><th>Time</th><th>Service</th><th>Price</th><th>Status</th><th></th></tr></thead><tbody>'+
+    sorted.map(function(job){return'<tr>'+
+      '<td><div style="font-weight:500">'+esc(job.client)+'</div><div style="font-size:11px;color:#aaa">'+esc(job.address||'')+'</div></td>'+
+      '<td>'+job.date+'</td><td>'+esc(job.time||'')+'</td><td>'+esc(job.service||'')+'</td>'+
+      '<td>'+(job.price?'<strong style="color:var(--green)">'+money(job.price)+'</strong>':'&mdash;')+'</td>'+
+      '<td><span class="tag tag-'+job.status+'">'+job.status+'</span></td>'+
+      '<td><div style="display:flex;gap:5px">'+
+        (job.status==='upcoming'?'<button class="btn btn-sm btn-success" onclick="markJobDone(\''+job.id+'\')">Done</button>':'')+
+        '<button class="btn btn-sm btn-danger" onclick="delJob(\''+job.id+'\')">Delete</button>'+
+      '</div></td></tr>';}).join('')+'</tbody></table>';
+}
+function markJobDone(id){var job=DB.jobs.find(function(j){return j.id==id;});if(job){job.status='done';persist();renderJobTable();}}
+function delJob(id){if(!confirm('Delete this job?'))return;DB.jobs=DB.jobs.filter(function(j){return j.id!=id;});persist();renderJobTable();}
+
+// ── CALENDAR ──
+var calDate=new Date();
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var DOWS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function calPrev(){calDate.setMonth(calDate.getMonth()-1);renderCalendar();}
+function calNext(){calDate.setMonth(calDate.getMonth()+1);renderCalendar();}
+function renderCalendar(){
+  var y=calDate.getFullYear(),m=calDate.getMonth();
+  g('cal-title').textContent=MONTHS[m]+' '+y;
+  var firstDay=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),diprev=new Date(y,m,0).getDate(),td=todayStr();
+  var cells=[];
+  for(var i=firstDay-1;i>=0;i--)cells.push({d:diprev-i,cur:false});
+  for(var d=1;d<=dim;d++)cells.push({d:d,cur:true});
+  while(cells.length<42)cells.push({d:cells.length-firstDay-dim+1,cur:false});
+  var grid=g('cal-grid');
+  grid.innerHTML=DOWS.map(function(d){return'<div class="cal-dow">'+d+'</div>';}).join('');
+  cells.forEach(function(cell){
+    var ds=y+'-'+pad(m+1)+'-'+pad(cell.d);
+    var isToday=cell.cur&&ds===td;
+    var jobs=cell.cur?DB.jobs.filter(function(j){return j.date===ds;}):[];
+    var div=document.createElement('div');
+    div.className='cal-cell'+(cell.cur?'':' other')+(isToday?' today-cell':'');
+    div.innerHTML='<div class="cal-num">'+cell.d+'</div>'+jobs.map(function(j){return'<div class="cal-pill'+(j.status==='done'?' done':'')+'">'+esc(j.client)+(j.price?' '+money(j.price):'')+'</div>';}).join('');
+    grid.appendChild(div);
+  });
+}
+
+// ── CONTACTS ──
+var editingContactId=null;
+function autoSaveContact(name,phone,address,email){
+  if(!name)return;
+  var existing=DB.contacts.find(function(c){return c.name&&c.name.toLowerCase()===name.toLowerCase();});
+  if(existing){
+    if(phone&&!existing.phone)existing.phone=phone;
+    if(address&&!existing.address)existing.address=address;
+    if(email&&!existing.email)existing.email=email;
+  } else {
+    DB.contacts.push({id:Date.now(),name:name,phone:phone||'',address:address||'',email:email||'',notes:''});
+  }
+  persist();
+}
+function renderContacts(){
+  var q=(g('contact-search').value||'').toLowerCase();
+  var list=DB.contacts.filter(function(c){
+    return!q||(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)||(c.address||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q);
+  }).sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});
+  if(!list.length){g('contact-grid').innerHTML='<div class="empty" style="grid-column:1/-1">'+(q?'No contacts match your search.':'No contacts yet. They\'ll be added automatically when you create invoices or jobs.')+'</div>';return;}
+  g('contact-grid').innerHTML=list.map(function(c){
+    var jobs=DB.jobs.filter(function(j){return j.client&&c.name&&j.client.toLowerCase()===c.name.toLowerCase();}).length;
+    var spent=DB.invoices.filter(function(i){return i.client&&c.name&&i.client.toLowerCase()===c.name.toLowerCase()&&i.status==='paid';}).reduce(function(s,i){return s+Number(i.total);},0);
+    return'<div class="contact-card">'+
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'+
+        '<div class="contact-avatar">'+initials(c.name)+'</div>'+
+        '<div class="contact-info">'+
+          '<div class="contact-name">'+esc(c.name)+'</div>'+
+          (c.phone?'<div class="contact-detail">&#128222; '+esc(c.phone)+'</div>':'')+
+          (c.email?'<div class="contact-detail">&#9993; '+esc(c.email)+'</div>':'')+
+          (c.address?'<div class="contact-detail">&#128205; '+esc(c.address)+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;font-size:11px;color:#888;margin-bottom:12px">'+
+        '<span>'+jobs+' job'+(jobs!==1?'s':'')+'</span>'+
+        (spent?'<span style="color:var(--green);font-weight:600">'+money(spent)+' paid</span>':'')+
+      '</div>'+
+      (c.notes?'<div style="font-size:12px;color:#666;margin-bottom:10px;background:#f8f8f6;padding:8px;border-radius:6px">'+esc(c.notes)+'</div>':'')+
+      '<div style="display:flex;gap:6px">'+
+        '<button class="btn btn-sm btn-ghost" onclick="editContact(\''+c.id+'\')">Edit</button>'+
+        '<button class="btn btn-sm btn-danger" onclick="delContact(\''+c.id+'\')">Delete</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+function openContactModal(){
+  editingContactId=null;
+  g('contact-modal-title').textContent='Add Contact';
+  ['c-name','c-phone','c-email','c-address','c-notes'].forEach(function(id){g(id).value='';});
+  g('contact-modal').classList.add('open');
+}
+function editContact(id){
+  var c=DB.contacts.find(function(c){return c.id==id;});if(!c)return;
+  editingContactId=id;
+  g('contact-modal-title').textContent='Edit Contact';
+  g('c-name').value=c.name||'';g('c-phone').value=c.phone||'';g('c-email').value=c.email||'';g('c-address').value=c.address||'';g('c-notes').value=c.notes||'';
+  g('contact-modal').classList.add('open');
+}
+function closeContactModal(){g('contact-modal').classList.remove('open');}
+function saveContact(){
+  var name=g('c-name').value.trim();if(!name){alert('Name is required.');return;}
+  if(editingContactId){
+    var c=DB.contacts.find(function(c){return c.id==editingContactId;});
+    if(c){c.name=name;c.phone=g('c-phone').value;c.email=g('c-email').value;c.address=g('c-address').value;c.notes=g('c-notes').value;}
+  } else {
+    DB.contacts.push({id:Date.now(),name:name,phone:g('c-phone').value,email:g('c-email').value,address:g('c-address').value,notes:g('c-notes').value});
+  }
+  persist();closeContactModal();renderContacts();
+}
+function delContact(id){if(!confirm('Delete this contact?'))return;DB.contacts=DB.contacts.filter(function(c){return c.id!=id;});persist();renderContacts();}
+
+// ── DOOR KNOCKING ──
+function renderDoors(){
+  var td=todayStr();
+  g('knock-date-label').textContent='Today \u2014 '+td;
+  var tk=DB.knockData[td]||{yes:0,no:0,na:0,log:[]};
+  var total=(tk.yes||0)+(tk.no||0)+(tk.na||0);
+  g('k-total').textContent=total;g('k-yes').textContent=tk.yes||0;g('k-no').textContent=tk.no||0;g('k-na').textContent=tk.na||0;
+  var hist=Object.keys(DB.knockData).sort(function(a,b){return b.localeCompare(a);}).slice(0,10);
+  g('knock-history').innerHTML=hist.length?hist.map(function(d){var dk=DB.knockData[d];var t=(dk.yes||0)+(dk.no||0)+(dk.na||0);return'<div class="hist-row"><strong>'+d+'</strong><div style="display:flex;gap:16px;font-size:13px"><span>'+t+' doors</span><span style="color:var(--green)">'+(dk.yes||0)+' yes</span><span style="color:var(--red)">'+(dk.no||0)+' no</span><span style="color:var(--amber)">'+(dk.na||0)+' na</span></div></div>';}).join(''):'<div class="empty">Start knocking to see history here.</div>';
+}
+function knockDoor(){g('knock-ready').style.display='none';g('knock-result').style.display='block';}
+function cancelKnock(){g('knock-result').style.display='none';g('knock-ready').style.display='block';}
+function saveKnock(result){
+  var td=todayStr();
+  if(!DB.knockData[td])DB.knockData[td]={yes:0,no:0,na:0,log:[]};
+  DB.knockData[td][result]=(DB.knockData[td][result]||0)+1;
+  DB.knockData[td].log.push({result:result,time:new Date().toISOString()});
+  persist();cancelKnock();renderDoors();
+}
+
+// ── TIMING ──
+var timerType='cleaning',timerInterval=null,timerSecs=0,timerRunning=false;
+function timingTab(type,btn){
+  if(timerRunning)return;
+  timerType=type;
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  g('timer-label').textContent=type==='cleaning'?'Cleaning Timer':'Door Knocking Timer';
+  timerReset();renderTiming();
+}
+function timerStart(){
+  timerRunning=true;g('btn-start').style.display='none';g('btn-stop').style.display='';
+  timerInterval=setInterval(function(){timerSecs++;g('timer-display').textContent=fmt(timerSecs);g('timer-display').style.color=timerType==='cleaning'?'var(--blue)':'var(--green)';},1000);
+}
+function timerStop(){
+  clearInterval(timerInterval);timerRunning=false;
+  g('btn-stop').style.display='none';g('btn-start').style.display='';
+  if(timerSecs>0){
+    if(!DB.timingData[timerType])DB.timingData[timerType]=[];
+    DB.timingData[timerType].push({id:Date.now(),date:todayStr(),secs:timerSecs});
+    persist();
+  }
+  timerSecs=0;g('timer-display').textContent='00:00:00';g('timer-display').style.color='#1a1a1a';
+  renderTiming();
+}
+function timerReset(){
+  clearInterval(timerInterval);timerRunning=false;timerSecs=0;
+  g('btn-start').style.display='';g('btn-stop').style.display='none';
+  g('timer-display').textContent='00:00:00';g('timer-display').style.color='#1a1a1a';
+}
+function renderTiming(){
+  var sessions=DB.timingData[timerType]||[];
+  var avg=sessions.length?Math.round(sessions.reduce(function(s,e){return s+e.secs;},0)/sessions.length):0;
+  var total=sessions.reduce(function(s,e){return s+e.secs;},0);
+  var todaySecs=sessions.filter(function(s){return s.date===todayStr();}).reduce(function(t,s){return t+s.secs;},0);
+  g('t-avg').textContent=fmtMin(avg);g('t-today').textContent=fmtMin(todaySecs);
+  g('t-count').textContent=sessions.length;g('t-total').textContent=fmtMin(total);
+  var hist=[].concat(sessions).reverse().slice(0,12);
+  g('timing-history').innerHTML=hist.length?hist.map(function(s){return'<div class="hist-row"><span style="color:#888;font-size:12px">'+s.date+'</span><span style="font-weight:500">'+fmt(s.secs)+'</span></div>';}).join(''):'<div class="empty">No sessions yet &mdash; hit Start to begin.</div>';
+}
+
+// ── INIT ──
+renderDash();
+renderInvTable('all');
+renderJobTable();
+</script>
+</body>
+</html>
