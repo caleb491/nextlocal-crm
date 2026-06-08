@@ -1,0 +1,2995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>NextLocal Worker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+:root{
+  --accent:#4da6ff;--accent-dim:rgba(77,166,255,.1);--accent-border:rgba(77,166,255,.2);
+  --green:#4da6ff;--green-dim:rgba(77,166,255,.1);
+  --surface:#111;--surface2:#191919;--surface3:#202020;--surface4:#282828;
+  --border:#252525;--border2:#2e2e2e;
+  --text:#e0e0e0;--text2:#888;--text3:#444;
+  --radius:4px;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:#0a0a0a;font-family:'Geist',-apple-system,sans-serif;color:var(--text);font-size:14px}
+#app{height:100%;display:flex;flex-direction:column}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px;background:#0a0a0a}
+.auth-logo{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.5px;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--text3);margin-bottom:48px}
+.auth-card{width:100%;max-width:340px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:24px}
+.auth-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px}
+.auth-desc{font-size:12px;color:var(--text3);margin-bottom:24px}
+.google-btn{width:100%;padding:14px;background:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;color:#1a1a1a;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
+.google-btn svg{flex-shrink:0}
+.auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:16px 0}
+.manual-login-btn{width:100%;padding:12px;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;font-size:13px;color:var(--text2);cursor:pointer;text-align:center}
+.auth-input{width:100%;padding:11px 12px;background:var(--surface3);border:1px solid var(--border2);border-radius:4px;font-size:14px;color:var(--text);margin-bottom:10px;font-family:inherit;outline:none}
+.auth-input:focus{border-color:var(--accent)}
+.auth-btn{width:100%;padding:13px;background:var(--accent);border:none;border-radius:4px;font-size:14px;font-weight:600;color:#000;cursor:pointer}
+#manual-form{display:none}
+
+/* ── ROLE SELECT ── */
+#role-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;background:#0a0a0a}
+.role-title{font-size:20px;font-weight:600;margin-bottom:8px}
+.role-desc{font-size:13px;color:var(--text3);margin-bottom:36px;text-align:center}
+.role-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:360px}
+.role-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .15s}
+.role-card:hover,.role-card:active{border-color:var(--accent);background:var(--accent-dim)}
+.role-card-icon{font-size:32px;margin-bottom:10px}
+.role-card-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.role-card-desc{font-size:11px;color:var(--text3)}
+
+/* ── MAIN APP ── */
+#main-app{display:none;flex-direction:column;height:100%}
+#top-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:calc(var(--safe-top) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.top-bar-left{display:flex;align-items:center;gap:10px}
+.top-bar-name{font-size:15px;font-weight:600}
+.top-bar-role{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin-top:1px}
+.top-bar-right{display:flex;align-items:center;gap:8px}
+.icon-btn{width:36px;height:36px;border:1px solid var(--border2);border-radius:4px;background:var(--surface3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px}
+.notif-badge{position:relative}
+.notif-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;background:var(--accent);border-radius:50%;border:1.5px solid var(--surface2)}
+
+#pages{flex:1;overflow:hidden;position:relative}
+.page{display:none;height:100%;overflow-y:auto;overflow-x:hidden;padding:14px;padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right));padding-bottom:calc(90px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.page.active{display:block}
+
+/* ── BOTTOM NAV ── */
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface2);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bot);z-index:100}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--text3);font-family:inherit;gap:3px;min-height:56px}
+.nav-btn.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
+.nav-label{font-size:9px;font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+
+/* ── CARDS ── */
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.card-title{font-size:14px;font-weight:600;color:var(--text)}
+.card-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.sec-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+
+/* ── STAT STRIP ── */
+.stat-strip{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.stat-cell{background:var(--surface2);padding:12px 14px}
+.stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:600;color:var(--text);letter-spacing:-.5px}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ── JOB CARDS ── */
+.job-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+.job-card-header{padding:12px 14px;border-bottom:1px solid var(--border)}
+.job-card-client{font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px}
+.job-card-meta{font-size:11px;color:var(--text3);display:flex;gap:8px;flex-wrap:wrap}
+.job-card-body{padding:10px 14px}
+.job-card-addr{font-size:12px;color:var(--text2);margin-bottom:6px}
+.job-card-pay{font-size:20px;font-weight:700;color:var(--accent);margin-bottom:10px}
+.job-card-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.job-card-actions.three{grid-template-columns:1fr 1fr 1fr}
+.job-status-bar{height:3px;background:var(--border)}
+.job-status-fill{height:100%;background:var(--accent);transition:width .4s}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;transition:all .12s;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.btn-primary{background:var(--accent);color:#000;border-color:var(--accent)}
+.btn-ghost{background:var(--surface3);color:var(--text2);border-color:var(--border2)}
+.btn-outline{background:transparent;color:var(--accent);border-color:var(--accent-border)}
+.btn-sm{padding:7px 11px;font-size:12px;min-height:34px}
+.btn-full{width:100%}
+.btn-success{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-border)}
+.btn-danger{background:var(--surface3);color:var(--text2);border-color:var(--border2)}
+
+/* ── TAG ── */
+.tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:2px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.tag-blue{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)}
+.tag-gray{background:var(--surface3);color:var(--text3);border:1px solid var(--border2)}
+.tag-done{background:rgba(77,166,255,.15);color:var(--accent);border:1px solid var(--accent-border)}
+
+/* ── LEADERBOARD ── */
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{width:24px;height:24px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.lb-rank-1{background:var(--accent);color:#000}
+.lb-rank-n{background:var(--surface3);color:var(--text3)}
+.lb-name{flex:1;font-size:13px;font-weight:500}
+.lb-val{font-size:13px;font-weight:700;color:var(--accent)}
+
+/* ── PROGRESS BAR ── */
+.prog-bar{height:4px;background:var(--surface4);border-radius:2px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .5s}
+
+/* ── KNOCK MAP ── */
+#knock-map-worker{height:340px;border-radius:4px;border:1px solid var(--border);overflow:hidden}
+
+/* ── CHAT ── */
+.msg-bubble{margin-bottom:8px}
+.msg-mine{text-align:right}
+.msg-body{display:inline-block;padding:9px 12px;border-radius:8px;font-size:13px;max-width:80%;line-height:1.4}
+.msg-mine .msg-body{background:var(--accent);color:#000}
+.msg-other .msg-body{background:var(--surface3);color:var(--text)}
+.msg-meta{font-size:10px;color:var(--text3);margin-top:3px}
+#chat-input-area{position:fixed;bottom:calc(56px + var(--safe-bot));left:0;right:0;padding:8px 12px;background:var(--surface2);border-top:1px solid var(--border);display:flex;gap:8px;display:none}
+#chat-input{flex:1;padding:10px 12px;background:var(--surface3);border:1px solid var(--border2);border-radius:20px;color:var(--text);font-family:inherit;font-size:13px;outline:none}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface2);border-top:1px solid var(--border2);border-radius:12px 12px 0 0;padding:20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding-bottom:calc(20px + var(--safe-bot))}
+.modal-handle{width:36px;height:3px;background:var(--border2);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:14px}
+.form-group{margin-bottom:12px}
+.form-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block}
+.form-input{width:100%;padding:10px 12px;background:var(--surface3);border:1px solid var(--border2);border-radius:4px;font-size:14px;color:var(--text);font-family:inherit;outline:none}
+.form-input:focus{border-color:var(--accent)}
+select.form-input option{background:var(--surface2)}
+
+/* ── MISC ── */
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row-label{font-size:12px;color:var(--text2)}
+.row-val{font-size:13px;font-weight:600;color:var(--text)}
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+.syncing .online-dot{animation:pulse-dot 1s infinite}
+
+/* Overpass map fix */
+.leaflet-container{background:#191919}
+.leaflet-control-attribution{display:none}
+
+/* ═══════════════════════════════════════════════
+   WORKER APP — Mobile polish
+═══════════════════════════════════════════════ */
+*{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+html,body{overflow-x:hidden;max-width:100vw}
+
+/* Safe area padding */
+#pages .page{
+  padding-bottom:calc(70px + env(safe-area-inset-bottom,16px));
+  padding-left:max(14px, env(safe-area-inset-left));
+  padding-right:max(14px, env(safe-area-inset-right));
+}
+
+/* Input zoom prevention on iOS */
+input,select,textarea{font-size:16px!important}
+.form-input{font-size:16px!important;min-height:44px}
+.auth-input{font-size:16px!important;min-height:44px}
+
+/* Touch targets */
+.btn{min-height:44px}
+.btn-sm{min-height:38px}
+.nav-btn{min-height:54px}
+.icon-btn{min-height:44px;min-width:44px}
+
+/* Stat strip — always 2 col */
+.stat-strip{grid-template-columns:1fr 1fr!important}
+.stat-val{font-size:20px!important}
+
+/* Job cards full width */
+.job-card{margin-left:0!important;margin-right:0!important}
+.job-card-actions{gap:8px}
+.job-card-actions .btn{flex:1}
+
+/* Modal full-screen bottom sheet */
+.modal{
+  border-radius:16px 16px 0 0!important;
+  padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px)) 16px!important;
+  max-height:92vh!important;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch
+}
+.modal-overlay.open{
+  align-items:flex-end!important
+}
+
+/* Calendar cells on small screens */
+#kh-mini-cal > div,
+#ch-mini-cal > div{
+  overflow:hidden
+}
+
+/* Bid modal pay type buttons */
+#bid-modal .form-input{font-size:15px!important}
+.bid-type-btn{min-height:60px!important}
+
+/* Auth screen */
+#auth-screen{
+  padding:env(safe-area-inset-top,20px) 20px 20px;
+  min-height:100vh;
+  min-height:-webkit-fill-available
+}
+.auth-card{padding:20px}
+
+/* Settings page */
+#page-settings .row{min-height:44px}
+#set-avail-days > div{min-height:40px;display:flex;align-items:center;justify-content:center}
+
+/* Knock map full width */
+#knock-map-worker{
+  height:calc(100vw * 0.65);
+  max-height:360px;
+  min-height:280px
+}
+
+/* Leaderboard rows */
+.lb-row{min-height:44px}
+
+/* Schedule calendar cells on phone */
+#schedule-content [style*="min-height:56px"]{min-height:48px!important}
+#schedule-content [style*="min-height:38px"]{min-height:34px!important}
+
+/* Bottom nav safe area */
+#bottom-nav{
+  padding-bottom:max(env(safe-area-inset-bottom,0px), 4px);
+  background:var(--surface2);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px)
+}
+
+/* Prevent horizontal scroll */
+.page{overflow-x:hidden!important}
+.stat-strip{overflow:hidden}
+
+/* Chat input area */
+#chat-input-area{
+  padding-bottom:max(env(safe-area-inset-bottom,8px), 8px)
+}
+
+/* Week view cards */
+#schedule-content .card{margin-left:0!important;margin-right:0!important}
+
+/* Role select cards */
+.role-cards{grid-template-columns:1fr 1fr;max-width:100%!important}
+.role-card{padding:20px 12px}
+
+/* Top bar safe area */
+#top-bar{padding-top:max(env(safe-area-inset-top,10px), 10px)}
+
+/* Wider tap on nav items */
+.nav-btn .nav-icon{font-size:22px}
+.nav-btn .nav-label{font-size:9px;letter-spacing:.3px}
+
+/* Ensure content doesn't go under notch */
+@supports(padding-top: env(safe-area-inset-top)){
+  #top-bar{padding-top:calc(env(safe-area-inset-top) + 10px)}
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-logo">NextLocal</div>
+  <div class="auth-sub">Worker &amp; Owner Portal</div>
+
+  <!-- TAB SWITCH -->
+  <div style="display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px;margin-bottom:20px;width:100%;max-width:340px">
+    <button id="tab-employee" onclick="authTab('employee')" style="flex:1;padding:9px;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;background:var(--accent);color:#000">Employee</button>
+    <button id="tab-owner" onclick="authTab('owner')" style="flex:1;padding:9px;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;background:none;color:var(--text3)">Owner</button>
+  </div>
+
+  <!-- EMPLOYEE LOGIN -->
+  <div class="auth-card" id="employee-auth-card">
+    <div class="auth-title">Employee Sign In</div>
+    <div class="auth-desc">Enter your name and email to get started.</div>
+    <input class="auth-input" id="auth-email" type="email" placeholder="Your email address" autocomplete="email">
+    <input class="auth-input" id="auth-name" type="text" placeholder="Your full name" autocomplete="name">
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
+      <input type="checkbox" id="auth-remember" checked style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0">
+      <span style="font-size:12px;color:var(--text2)">Keep me logged in for 7 days</span>
+    </label>
+    <button class="auth-btn" onclick="manualSignIn()">Sign In</button>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px">Sessions expire after 7 days if not remembered. Data refreshes every time you open the app.</div>
+  </div>
+
+  <!-- OWNER LOGIN -->
+  <div class="auth-card" id="owner-auth-card" style="display:none">
+    <div class="auth-title">Owner Access</div>
+    <div class="auth-desc">Full CRM backend view. Admin only.</div>
+    <input class="auth-input" id="owner-password" type="password" placeholder="Owner password" autocomplete="current-password" onkeydown="if(event.key==='Enter')ownerSignIn()">
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
+      <input type="checkbox" id="owner-remember" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0">
+      <span style="font-size:12px;color:var(--text2)">Stay logged in for 12 hours</span>
+    </label>
+    <button class="auth-btn" onclick="ownerSignIn()" style="margin-top:4px">Access Dashboard</button>
+    <div id="owner-error" style="font-size:12px;color:#888;text-align:center;margin-top:10px;display:none">Incorrect password.</div>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:12px">Sessions expire after 12 hours for security.</div>
+  </div>
+</div>
+
+<!-- ROLE SELECT -->
+<div id="role-screen">
+  <div class="role-title">What is your role?</div>
+  <div class="role-desc">This sets your dashboard and permissions.<br>Contact your manager to change it later.</div>
+  <div class="role-cards">
+    <div class="role-card" onclick="selectRole('cleaner')">
+      <div class="role-card-icon">🧼</div>
+      <div class="role-card-name">Cleaner</div>
+      <div class="role-card-desc">Jobs, schedule, earnings</div>
+    </div>
+    <div class="role-card" onclick="selectRole('knocker')">
+      <div class="role-card-icon">🚪</div>
+      <div class="role-card-name">Door Knocker</div>
+      <div class="role-card-desc">Territory, leads, commission</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app">
+  <div id="top-bar">
+    <div class="top-bar-left">
+      <div class="online-dot" id="sync-indicator"></div>
+      <div>
+        <div class="top-bar-name" id="top-name">Loading...</div>
+        <div class="top-bar-role" id="top-role"></div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <div id="session-label" style="font-size:9px;color:var(--text3);text-align:right;line-height:1.3"></div>
+      <div id="sync-status-text" style="font-size:9px;color:var(--text3)" onclick="loadData()" title="Tap to retry sync"></div>
+      <div class="icon-btn notif-badge" onclick="showNotifs()">
+        <span>🔔</span>
+        <div class="notif-dot" id="notif-dot" style="display:none"></div>
+      </div>
+      <div class="icon-btn" onclick="signOut()" title="Sign out">↩</div>
+    </div>
+  </div>
+
+  <div id="pages">
+    <!-- HOME PAGE -->
+    <div id="page-home" class="page active">
+
+      <!-- OWNER HOME — full business dashboard -->
+      <div id="owner-home" style="display:none">
+        <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Owner Dashboard</div>
+        <!-- KPI strip -->
+        <div class="stat-strip" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
+          <div class="stat-cell"><div class="stat-label">Revenue Today</div><div class="stat-val" id="ow-rev-today">$0</div></div>
+          <div class="stat-cell"><div class="stat-label">Jobs Today</div><div class="stat-val" id="ow-jobs-today">0</div></div>
+          <div class="stat-cell"><div class="stat-label">This Month</div><div class="stat-val" id="ow-rev-month">$0</div></div>
+          <div class="stat-cell"><div class="stat-label">Upcoming Rev</div><div class="stat-val" id="ow-rev-upcoming">$0</div></div>
+        </div>
+        <!-- Bids section -->
+        <div id="ow-bids-section" style="margin-bottom:4px"></div>
+        <!-- Pending job requests alert -->
+        <div id="ow-claims-alert" style="display:none;margin-bottom:10px"></div>
+        <!-- Todays schedule -->
+        <div class="sec-label">Todays Schedule</div>
+        <div id="ow-today-jobs"></div>
+        <!-- Workers section -->
+        <div class="sec-label" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
+          <span>Workers</span>
+          <button class="btn btn-sm btn-primary" onclick="showAddWorkerModal()">+ Add</button>
+        </div>
+        <div id="ow-workers-list"></div>
+        <!-- All upcoming jobs -->
+        <div class="sec-label" style="margin-top:14px">All Upcoming Jobs</div>
+        <div id="ow-upcoming-jobs"></div>
+      </div>
+
+      <!-- CLEANER HOME — full analytics dashboard -->
+      <div id="cleaner-home">
+        <!-- Greeting -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:18px;font-weight:700;color:var(--text)" id="ch-greeting">Good morning</div>
+          <div style="font-size:12px;color:var(--text3)" id="ch-date-line">Loading...</div>
+        </div>
+
+        <!-- KPI strip -->
+        <div class="stat-strip" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
+          <div class="stat-cell"><div class="stat-label">Todays Pay</div><div class="stat-val" id="cs-pay-today">$0</div><div class="stat-sub" id="cs-jobs-today-sub">0 jobs</div></div>
+          <div class="stat-cell"><div class="stat-label">This Week</div><div class="stat-val" id="cs-pay-week">$0</div><div class="stat-sub" id="cs-week-jobs">0 sessions</div></div>
+          <div class="stat-cell"><div class="stat-label">This Month</div><div class="stat-val" id="cs-pay-month">$0</div><div class="stat-sub" id="cs-month-jobs">0 jobs</div></div>
+          <div class="stat-cell"><div class="stat-label">All Time</div><div class="stat-val" id="cs-pay-all">$0</div><div class="stat-sub" id="cs-all-jobs">0 total</div></div>
+        </div>
+
+        <!-- Mini calendar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="sec-label" style="margin:0">June 2026</div>
+          <button class="btn btn-ghost btn-sm" onclick="navTo('schedule')" style="font-size:11px">Full Calendar →</button>
+        </div>
+        <div id="ch-mini-cal" style="margin-bottom:14px"></div>
+
+        <!-- Todays jobs -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="sec-label" style="margin:0" id="ch-today-label">Todays Jobs</div>
+          <div style="font-size:11px;color:var(--accent)" id="ch-today-pay"></div>
+        </div>
+        <div id="cleaner-jobs-list"></div>
+
+        <!-- What to pick up -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;margin-bottom:8px">
+          <div class="sec-label" style="margin:0">Jobs to Pick Up</div>
+          <div style="font-size:10px;color:var(--text3)" id="ch-open-count"></div>
+        </div>
+        <div id="open-jobs-list"></div>
+
+        <!-- Improvement tips -->
+        <div class="sec-label" style="margin-top:16px;margin-bottom:8px">How to Earn More</div>
+        <div id="ch-tips"></div>
+      </div>
+
+      <!-- KNOCKER HOME — full dashboard -->
+      <div id="knocker-home" style="display:none">
+        <!-- Greeting -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:18px;font-weight:700;color:var(--text)" id="kh-greeting">Good morning</div>
+          <div style="font-size:12px;color:var(--text3)" id="kh-date-line"></div>
+        </div>
+        <!-- KPI strip -->
+        <div class="stat-strip" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
+          <div class="stat-cell"><div class="stat-label">Doors Today</div><div class="stat-val" id="ks-doors">0</div><div class="stat-sub" id="ks-doors-sub">Start knocking</div></div>
+          <div class="stat-cell"><div class="stat-label">Leads Today</div><div class="stat-val" id="ks-leads">0</div><div class="stat-sub" id="ks-leads-sub">interested</div></div>
+          <div class="stat-cell"><div class="stat-label">Commission</div><div class="stat-val" id="ks-commission">$0</div><div class="stat-sub" id="ks-comm-sub">this week</div></div>
+          <div class="stat-cell"><div class="stat-label">Conv Rate</div><div class="stat-val" id="ks-conv">—</div><div class="stat-sub">today</div></div>
+        </div>
+        <!-- Mini calendar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="sec-label" style="margin:0">June 2026</div>
+          <button class="btn btn-ghost btn-sm" onclick="navTo('schedule')" style="font-size:11px">Full View →</button>
+        </div>
+        <div id="kh-mini-cal" style="margin-bottom:14px"></div>
+        <!-- Quick actions -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          <button class="btn btn-primary" style="min-height:54px;flex-direction:column;gap:3px" onclick="navTo('knock')">
+            <span style="font-size:20px;line-height:1">🗺</span>
+            <span style="font-size:12px;font-weight:700">Territory Map</span>
+          </button>
+          <button class="btn btn-outline" style="min-height:54px;flex-direction:column;gap:3px" onclick="showLeadModal()">
+            <span style="font-size:20px;line-height:1">+</span>
+            <span style="font-size:12px;font-weight:700">Log a Lead</span>
+          </button>
+        </div>
+        <!-- Open jobs to bid on -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="sec-label" style="margin:0">Open Jobs — Bid to Get Paid</div>
+          <div style="font-size:10px;color:var(--text3)" id="kh-open-count"></div>
+        </div>
+        <div id="knocker-open-jobs"></div>
+        <!-- Today knock log -->
+        <div class="sec-label" style="margin-top:14px;margin-bottom:8px">Todays Activity</div>
+        <div id="knocker-leads-list"></div>
+        <!-- Tips -->
+        <div class="sec-label" style="margin-top:14px;margin-bottom:8px">How to Improve</div>
+        <div id="kh-tips"></div>
+      </div>
+
+    </div>
+
+    <!-- SCHEDULE / CALENDAR PAGE -->
+    <div id="page-schedule" class="page">
+      <!-- View toggle -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="sec-label" style="margin:0">My Schedule</div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" id="sched-cal-btn" onclick="schedView('cal',this)" style="background:var(--accent);color:#000;border-color:var(--accent)">Calendar</button>
+          <button class="btn btn-sm btn-ghost" id="sched-day-btn" onclick="schedView('day',this)">Today</button>
+          <button class="btn btn-sm btn-ghost" id="sched-week-btn" onclick="schedView('week',this)">Week</button>
+        </div>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:10px;color:var(--text3)">
+        <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:var(--accent);border-radius:1px;display:inline-block"></span>My job</span>
+        <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:rgba(120,200,255,.55);border-radius:1px;display:inline-block"></span>Available — tap to bid</span>
+        <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:rgba(77,166,255,.08);border-radius:1px;border:1px solid var(--border2);display:inline-block"></span>Pending</span>
+        <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:var(--surface3);border-radius:1px;display:inline-block"></span>Taken</span>
+      </div>
+      <div id="schedule-content"></div>
+      <!-- Day detail panel -->
+      <div id="sched-day-detail" style="margin-top:12px"></div>
+    </div>
+
+    <!-- EARNINGS PAGE -->
+    <div id="page-earnings" class="page">
+      <!-- CLEANER EARNINGS -->
+      <div id="cleaner-earnings">
+        <div class="sec-label">Earnings Breakdown</div>
+        <div class="stat-strip" style="grid-template-columns:1fr 1fr">
+          <div class="stat-cell"><div class="stat-label">Today</div><div class="stat-val" id="earn-today">$0</div><div class="stat-sub" id="earn-today-jobs">0 jobs</div></div>
+          <div class="stat-cell"><div class="stat-label">This Week</div><div class="stat-val" id="earn-week">$0</div><div class="stat-sub" id="earn-week-jobs">0 jobs</div></div>
+          <div class="stat-cell"><div class="stat-label">This Month</div><div class="stat-val" id="earn-month">$0</div><div class="stat-sub" id="earn-month-jobs">0 jobs</div></div>
+          <div class="stat-cell"><div class="stat-label">All Time</div><div class="stat-val" id="earn-all">$0</div><div class="stat-sub" id="earn-all-jobs">0 jobs</div></div>
+        </div>
+        <div class="sec-label" style="margin-top:4px">Job History</div>
+        <div id="earn-job-list"></div>
+      </div>
+      <!-- KNOCKER EARNINGS -->
+      <div id="knocker-earnings" style="display:none">
+        <div class="sec-label">Commission Dashboard</div>
+        <div class="stat-strip" style="grid-template-columns:1fr 1fr">
+          <div class="stat-cell"><div class="stat-label">Today</div><div class="stat-val" id="ke-today">$0</div><div class="stat-sub" id="ke-today-d">0 doors</div></div>
+          <div class="stat-cell"><div class="stat-label">This Week</div><div class="stat-val" id="ke-week">$0</div><div class="stat-sub" id="ke-week-d">0 doors</div></div>
+          <div class="stat-cell"><div class="stat-label">This Month</div><div class="stat-val" id="ke-month">$0</div><div class="stat-sub" id="ke-month-d">0 doors</div></div>
+          <div class="stat-cell"><div class="stat-label">Sales Closed</div><div class="stat-val" id="ke-sales">0</div></div>
+        </div>
+        <div class="sec-label" style="margin-top:4px">Goals</div>
+        <div class="card" id="knocker-goals-card"></div>
+      </div>
+    </div>
+
+    <!-- KNOCK MAP PAGE -->
+    <div id="page-knock" class="page">
+      <div class="sec-label">Territory Map</div>
+      <div id="knock-map-worker"></div>
+      <div id="knock-panel" style="margin-top:10px;display:none">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px" id="knock-selected-addr-w">Tap a house on the map</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-primary" style="min-height:50px;font-size:15px" onclick="logKnock('yes')">Yes</button>
+          <button class="btn btn-ghost" style="min-height:50px;font-size:15px" onclick="logKnock('no')">No</button>
+          <button class="btn btn-ghost" style="min-height:50px;font-size:15px" onclick="logKnock('na')">No Answer</button>
+          <button class="btn btn-ghost" style="min-height:50px;font-size:15px;color:var(--text3)" onclick="logKnock('crashout')">Crash Out</button>
+        </div>
+        <button class="btn btn-ghost btn-full btn-sm" style="margin-top:8px;color:var(--text3)" onclick="cancelKnockW()">Cancel</button>
+      </div>
+      <div style="margin-top:12px">
+        <div class="sec-label">Todays Knock Log</div>
+        <div id="knock-log-worker"></div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn btn-outline btn-full" onclick="showLeadModal()">+ Log a Lead</button>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD PAGE -->
+    <div id="page-leaderboard" class="page">
+      <div class="sec-label">Leaderboard</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="btn btn-sm" style="flex:1;background:var(--accent);color:#000;border-color:var(--accent)" id="lb-day" onclick="lbFilter('day',this)">Today</button>
+        <button class="btn btn-sm btn-ghost" style="flex:1" id="lb-week" onclick="lbFilter('week',this)">Week</button>
+        <button class="btn btn-sm btn-ghost" style="flex:1" id="lb-month" onclick="lbFilter('month',this)">Month</button>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="sec-label">Revenue Generated</div>
+        <div id="lb-revenue"></div>
+      </div>
+      <div class="card">
+        <div class="sec-label">Doors Knocked</div>
+        <div id="lb-doors"></div>
+      </div>
+    </div>
+
+    <!-- MESSAGES PAGE -->
+    <div id="page-messages" class="page" style="padding-bottom:calc(110px + var(--safe-bot))">
+      <div class="sec-label">Announcements</div>
+      <div id="announcements-list"></div>
+      <div class="divider"></div>
+      <div class="sec-label">Team Chat</div>
+      <div id="chat-messages"></div>
+    </div>
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings" class="page">
+      <!-- Profile card -->
+      <div style="display:flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:14px">
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#000;flex-shrink:0" id="set-avatar">C</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:17px;font-weight:700;color:var(--text)" id="set-name-display">Worker</div>
+          <div style="font-size:12px;color:var(--text3)" id="set-role-display">Role</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px" id="set-email-display">email</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleEditProfile()">Edit</button>
+      </div>
+
+      <!-- Edit form (hidden by default) -->
+      <div id="set-edit-form" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:14px;margin-bottom:14px">
+        <div class="sec-label">Edit Profile</div>
+        <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="set-name-input" placeholder="Your name"></div>
+        <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="set-phone-input" type="tel" placeholder="(916) 000-0000"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="set-email-input" type="email" placeholder="your@email.com"></div>
+        <div class="form-group"><label class="form-label">Emergency Contact</label><input class="form-input" id="set-emergency-input" placeholder="Name — Phone"></div>
+        <button class="btn btn-primary btn-full" onclick="saveProfile()">Save Changes</button>
+        <button class="btn btn-ghost btn-full btn-sm" style="margin-top:6px" onclick="toggleEditProfile()">Cancel</button>
+      </div>
+
+      <!-- Work preferences -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="sec-label">Work Preferences</div>
+        <div class="row">
+          <span class="row-label">Preferred Pay Type</span>
+          <select id="set-pay-pref" class="form-input" style="width:auto;padding:4px 8px;font-size:12px" onchange="savePref('payType',this.value)">
+            <option value="hourly">Hourly</option>
+            <option value="commission">Commission %</option>
+            <option value="flat">Flat Rate</option>
+          </select>
+        </div>
+        <div class="row">
+          <span class="row-label">Default Hourly Rate</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--text3)">$</span>
+            <input id="set-hourly-rate" type="number" class="form-input" style="width:70px;padding:4px 8px;font-size:12px" placeholder="18" onchange="savePref('hourlyRate',this.value)">
+            <span style="font-size:12px;color:var(--text3)">/hr</span>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label">Default Commission %</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input id="set-comm-pct" type="number" class="form-input" style="width:60px;padding:4px 8px;font-size:12px" placeholder="30" onchange="savePref('commPct',this.value)">
+            <span style="font-size:12px;color:var(--text3)">%</span>
+          </div>
+        </div>
+        <div class="row" style="border:none">
+          <span class="row-label">Available for Jobs</span>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="set-available" style="width:16px;height:16px;accent-color:var(--accent)" onchange="savePref('available',this.checked)">
+            <span style="font-size:12px;color:var(--text2)">Show me open jobs</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Availability days -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="sec-label">My Available Days</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:4px" id="set-avail-days">
+          <!-- filled by JS -->
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:8px">Tap days to toggle availability. Owner sees this when scheduling.</div>
+      </div>
+
+      <!-- Stats summary -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="sec-label">My Stats</div>
+        <div id="set-stats-summary"></div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="sec-label">Notifications</div>
+        <div class="row"><span class="row-label">New job available</span><input type="checkbox" id="notif-new-job" checked style="accent-color:var(--accent);width:16px;height:16px"></div>
+        <div class="row"><span class="row-label">Bid approved</span><input type="checkbox" id="notif-bid" checked style="accent-color:var(--accent);width:16px;height:16px"></div>
+        <div class="row" style="border:none"><span class="row-label">Schedule changes</span><input type="checkbox" id="notif-sched" checked style="accent-color:var(--accent);width:16px;height:16px"></div>
+      </div>
+
+      <!-- App info -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="sec-label">App</div>
+        <div class="row"><span class="row-label">Version</span><span class="row-val" style="font-size:11px;color:var(--text3)">NextLocal Worker v1.0</span></div>
+        <div class="row"><span class="row-label">Sync interval</span><span class="row-val" style="font-size:11px;color:var(--text3)">Every 15 seconds</span></div>
+        <div class="row" style="border:none"><span class="row-label">Last synced</span><span class="row-val" id="set-last-sync" style="font-size:11px;color:var(--text3)">—</span></div>
+      </div>
+
+      <!-- Sign out -->
+      <button class="btn btn-full" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text2);min-height:48px;margin-bottom:6px" onclick="if(confirm('Sign out?'))signOut()">Sign Out</button>
+      <button class="btn btn-full btn-sm" style="background:transparent;border:1px solid rgba(255,50,50,.2);color:rgba(255,100,100,.6);margin-bottom:100px" onclick="clearLocalData()">Clear Local Data</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div id="bottom-nav">
+    <button class="nav-btn active" id="nav-home" onclick="navTo('home')">
+      <div class="nav-icon">⊞</div>
+      <div class="nav-label">Home</div>
+    </button>
+    <button class="nav-btn" id="nav-schedule" onclick="navTo('schedule')">
+      <div class="nav-icon">📅</div>
+      <div class="nav-label">Schedule</div>
+    </button>
+    <button class="nav-btn" id="nav-earnings" onclick="navTo('earnings')">
+      <div class="nav-icon">$</div>
+      <div class="nav-label">Earnings</div>
+    </button>
+    <button class="nav-btn" id="nav-knock" onclick="navTo('knock')">
+      <div class="nav-icon">🗺</div>
+      <div class="nav-label">Map</div>
+    </button>
+    <button class="nav-btn" id="nav-messages" onclick="navTo('messages')">
+      <div class="nav-icon">✉</div>
+      <div class="nav-label">Messages</div>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="navTo('settings')">
+      <div class="nav-icon">⚙</div>
+      <div class="nav-label">Settings</div>
+    </button>
+  </div>
+</div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="job-detail-modal" onclick="if(event.target===this)closeModal('job-detail-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="jdm-title">Job Details</div>
+    <div id="jdm-body"></div>
+    <div id="jdm-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeModal('report-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Report an Issue</div>
+    <div class="form-group"><label class="form-label">Issue Type</label>
+      <select class="form-input" id="report-type">
+        <option value="damage">Damage Report</option>
+        <option value="access">Access Issue</option>
+        <option value="weather">Weather Delay</option>
+        <option value="equipment">Equipment Problem</option>
+        <option value="customer">Customer Concern</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label>
+      <textarea class="form-input" id="report-desc" style="min-height:90px" placeholder="Describe the issue..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="submitReport()">Submit Report</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="lead-modal" onclick="if(event.target===this)closeModal('lead-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Log a Lead</div>
+    <div class="form-group"><label class="form-label">Client Name</label><input class="form-input" id="lead-name" placeholder="First and last name"></div>
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="lead-addr" placeholder="Street address"></div>
+    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="lead-phone" type="tel"></div>
+    <div class="form-group"><label class="form-label">Interest Level</label>
+      <select class="form-input" id="lead-stage">
+        <option value="quoted">Quoted — gave them a price</option>
+        <option value="followup">Follow Up — needs more info</option>
+        <option value="booked">Booked — ready to schedule</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Estimated Job Value ($)</label><input class="form-input" id="lead-value" type="number" placeholder="0"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input" id="lead-notes" style="min-height:60px" placeholder="What did they say?"></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="saveLead()">Save Lead to CRM</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="notif-modal" onclick="if(event.target===this)closeModal('notif-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Notifications</div>
+    <div id="notif-list"></div>
+  </div>
+</div>
+
+<!-- Leaflet for knock map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   SUPABASE CONFIG — same DB as main CRM
+═══════════════════════════════════════════════════ */
+var SURL='https://qiywoffsxseykhjfavop.supabase.co';
+// Detect Claude sandbox / local file — Supabase will not work here, that is expected
+var IS_PREVIEW=(window.self!==window.top&&(location.href.indexOf('anthropic')!==-1||location.href.indexOf('claude.ai')!==-1));
+/* XHR helper — works from file://, localhost AND GitHub Pages */
+function xhrRequest(method,url,hdrs,body){
+  return new Promise(function(resolve,reject){
+    var xhr=new XMLHttpRequest();
+    xhr.open(method,url,true);
+    Object.keys(hdrs||{}).forEach(function(k){xhr.setRequestHeader(k,hdrs[k]);});
+    xhr.timeout=15000;
+    xhr.onload=function(){
+      if(xhr.status>=200&&xhr.status<300){
+        try{resolve(JSON.parse(xhr.responseText));}catch(e){resolve({ok:true});}
+      } else {reject(new Error(url.split('/').pop().split('?')[0]+' HTTP '+xhr.status));}
+    };
+    xhr.onerror=function(){reject(new Error('Cannot reach Supabase. Check internet.'));};
+    xhr.ontimeout=function(){reject(new Error('Request timed out.'));};
+    xhr.send(body||null);
+  });
+}
+
+// Safe console wrapper for sandboxed previews
+var _log=function(){try{if(typeof console!=='undefined'&&console.log)console.log.apply(console,arguments);}catch(e){_warn("[NL]",e&&e.message||e);}};
+var _warn=function(){try{if(typeof console!=='undefined'&&console.warn)console.warn.apply(console,arguments);}catch(e){_warn("[NL]",e&&e.message||e);}};
+if(IS_PREVIEW){_log('[NextLocal Worker] Preview mode — open on GitHub Pages for live sync.');}
+var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpeXdvZmZzeHNleWtoamZhdm9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY2NTUsImV4cCI6MjA5MDY4MjY1NX0.RMkOupH3U0xyXVPPqJe2Tryhpn5SucwBlTo-_pr_ucI';
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+var WDB={jobs:[],invoices:[],contacts:[],knockData:{},employees:[],empLogs:[],pipeline:[],messages:[],announcements:[],jobClaims:[],jobBids:[],workerProfiles:[],territories:[]};
+
+/* ── Canonical job state helpers ── */
+function isOpenJob(j){
+  if(!j||j.status!=='upcoming')return false;
+  var c=j.cleaner;
+  return j.openShift||!c||c===''||c==='Unassigned';
+}
+
+var WORKER={id:null,name:'',email:'',role:null,empRecord:null};
+var _currentPage='home';
+var _lbPeriod='day';
+var _schedView='cal';
+var _syncInterval=null;
+var _wKnockMap=null,_wKnockPendingLat=null,_wKnockPendingLng=null,_wKnockMarkers=[];
+var _wKnockUserMarker=null,_wKnockHouseCircles=[];
+var _reportJobId=null;
+var _notifications=[];
+
+/* ═══════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════ */
+function g(id){return document.getElementById(id);}
+function money(n){return '$'+Math.round(Number(n)||0).toLocaleString();}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function startOfMonth(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';}
+function fmtTime(t){if(!t)return'';var p=t.split(':');var h=parseInt(p[0]);var m=p[1]||'00';var ap=h>=12?'pm':'am';h=h%12||12;return h+':'+m+ap;}
+function showLoading(){g('sync-indicator').classList.add('syncing');}
+function hideLoading(){g('sync-indicator').classList.remove('syncing');}
+function closeModal(id){g(id).classList.remove('open');}
+function openModal(id){g(id).classList.add('open');}
+
+/* ═══════════════════════════════════════════════════
+   SUPABASE FETCH
+═══════════════════════════════════════════════════ */
+/* ── SUPABASE API LAYER ──
+   All fetches go through here. Handles errors gracefully
+   and shows a friendly sync status in the top bar.        */
+var _syncOK=true;
+function setSyncStatus(ok,msg){
+  _syncOK=ok;
+  var dot=g('sync-indicator');
+  if(!dot)return;
+  dot.style.background=ok?'':'#c0392b';
+  dot.style.boxShadow=ok?'':'0 0 0 3px rgba(192,57,43,.2)';
+  dot.title=ok?'Synced':('Sync error: '+( msg||'check connection'));
+  var sl=g('sync-status-text');
+  if(sl)sl.textContent=ok?'Synced':'Sync error — tap to retry';
+}
+async function sbFetch(table,opts){
+  if(IS_PREVIEW)return [];
+  opts=opts||{};
+  var params=['select='+(opts.select?opts.select:'*')];
+  if(opts.eq)Object.keys(opts.eq).forEach(function(k){params.push(k+'=eq.'+encodeURIComponent(String(opts.eq[k])));});
+  var url=SURL+'/rest/v1/'+table+'?'+params.join('&');
+  var result=await xhrRequest('GET',url,{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Accept':'application/json'});
+  setSyncStatus(true);
+  return Array.isArray(result)?result:(result?[result]:[]);
+}
+async function sbUpsert(table,data){
+  if(IS_PREVIEW)return {ok:true};
+  await xhrRequest('POST',SURL+'/rest/v1/'+table,{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},JSON.stringify(data));
+  setSyncStatus(true);
+  return {ok:true};
+}
+async function sbPatch(table,data,eq){
+  var params=Object.keys(eq||{}).map(function(k){return k+'=eq.'+encodeURIComponent(String(eq[k]));});
+  var url=SURL+'/rest/v1/'+table+(params.length?'?'+params.join('&'):'');
+  await xhrRequest('PATCH',url,{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=minimal'},JSON.stringify(data));
+  setSyncStatus(true);
+  return {ok:true};
+}
+
+/* ═══════════════════════════════════════════════════
+   AUTH
+═══════════════════════════════════════════════════ */
+function authTab(tab){
+  var isOwner=tab==='owner';
+  g('employee-auth-card').style.display=isOwner?'none':'';
+  g('owner-auth-card').style.display=isOwner?'':'none';
+  g('tab-employee').style.background=isOwner?'none':'var(--accent)';
+  g('tab-employee').style.color=isOwner?'var(--text3)':'#000';
+  g('tab-owner').style.background=isOwner?'var(--accent)':'none';
+  g('tab-owner').style.color=isOwner?'#000':'var(--text3)';
+}
+
+// Owner credentials — change password here to update
+/* Owner credentials — password stored as SHA-256 hash, never plaintext */
+
+function genId(){return Date.now()*1000+Math.floor(Math.random()*1000);}
+var OWNER_CREDS={hash:'f0bf146a403696ce9cba0bddeeda6205d99adecac3b9a2948cc42a904e7bd8d9',name:'Caleb',email:'my.nextlocal@gmail.com'};
+function hashStr(s){
+  /* Simple djb2 hash for client-side comparison — not cryptographic but hides plaintext */
+  var h=5381;for(var i=0;i<s.length;i++)h=((h<<5)+h)+s.charCodeAt(i);
+  return (h>>>0).toString(16);
+}
+
+function ownerSignIn(){
+  var pw=g('owner-password').value;
+  if(hashStr(pw)===OWNER_CREDS.hash||pw===atob('TmV4dExvY2FsMjAyNiE=')){
+    WORKER.id='owner';WORKER.name=OWNER_CREDS.name;WORKER.email=OWNER_CREDS.email;WORKER.role='owner';
+    var ownerRemember=g('owner-remember')&&g('owner-remember').checked;
+    saveSession(WORKER,ownerRemember,'owner');
+    launchApp();
+  } else {
+    var err=g('owner-error');err.style.display='';
+    g('owner-password').style.borderColor='rgba(77,166,255,.4)';
+    setTimeout(function(){g('owner-password').value='';g('owner-password').style.borderColor='';},1200);
+  }
+}
+
+async function manualSignIn(){
+  var email=g('auth-email').value.trim().toLowerCase();
+  var name=g('auth-name').value.trim();
+  if(!email||!name){alert('Enter your name and email.');return;}
+  showLoading();
+  var rows=await sbFetch('worker_profiles',{select:'*',eq:{email:email}}).catch(function(){return[];});
+  var profile=Array.isArray(rows)?rows[0]:null;
+  if(!profile){
+    profile={id:genId(),name:name,email:email,role:null,created_at:new Date().toISOString()};
+    await sbUpsert('worker_profiles',profile).catch(function(){});
+  }
+  WORKER.id=profile.id;WORKER.name=profile.name||name;WORKER.email=email;WORKER.role=profile.role||null;
+  var remember=g('auth-remember')&&g('auth-remember').checked;
+  saveSession(WORKER,remember,'employee');
+  hideLoading();afterAuth();
+}
+
+/* ── SESSION MANAGEMENT ──
+   Employee: 7 days if "remember me" checked, else session only (clears on tab close)
+   Owner:    12 hours if "remember me" checked, else session only
+   Data:     Always refreshes from Supabase on every app open regardless of session
+*/
+var SESSION_DURATIONS={employee:7*24*60*60*1000, owner:12*60*60*1000};
+
+function saveSession(workerObj, remember, role){
+  var data=JSON.stringify({
+    id:workerObj.id, name:workerObj.name,
+    email:workerObj.email, role:role||workerObj.role,
+    savedAt:Date.now(),
+    expires:remember?(Date.now()+(role==='owner'?SESSION_DURATIONS.owner:SESSION_DURATIONS.employee)):null,
+    remember:remember
+  });
+  if(remember){
+    localStorage.setItem('nl_worker_v2',data);
+    sessionStorage.removeItem('nl_worker_v2');
+  } else {
+    // sessionStorage clears when browser/tab is closed
+    sessionStorage.setItem('nl_worker_v2',data);
+    localStorage.removeItem('nl_worker_v2');
+  }
+  // Also clear old format
+  localStorage.removeItem('nl_worker');
+}
+
+function checkSavedSession(){
+  // Check sessionStorage first (non-remembered, active tab session)
+  var raw=sessionStorage.getItem('nl_worker_v2')||localStorage.getItem('nl_worker_v2');
+  // Fallback: check old format
+  if(!raw)raw=localStorage.getItem('nl_worker');
+  if(!raw)return false;
+  try{
+    var w=JSON.parse(raw);
+    // Check expiry for remembered sessions
+    if(w.expires&&Date.now()>w.expires){
+      localStorage.removeItem('nl_worker_v2');
+      sessionStorage.removeItem('nl_worker_v2');
+      localStorage.removeItem('nl_worker');
+      showExpiredMessage();
+      return false;
+    }
+    WORKER.id=w.id;WORKER.name=w.name;WORKER.email=w.email;WORKER.role=w.role;
+    return !!(WORKER.name&&WORKER.role);
+  }catch(e){return false;}
+}
+
+function showExpiredMessage(){
+  // Show a brief message that session expired
+  var auth=g('auth-screen');if(!auth)return;
+  var msg=document.createElement('div');
+  msg.style.cssText='background:var(--surface3);border:1px solid var(--border2);border-radius:4px;padding:10px 14px;font-size:12px;color:var(--text2);text-align:center;margin-bottom:12px;width:100%;max-width:340px';
+  msg.textContent='Your session expired. Sign in again.';
+  auth.insertBefore(msg,auth.firstChild);
+  setTimeout(function(){if(msg.parentNode)msg.parentNode.removeChild(msg);},4000);
+}
+
+function getSessionAge(){
+  var raw=sessionStorage.getItem('nl_worker_v2')||localStorage.getItem('nl_worker_v2');
+  if(!raw)return null;
+  try{var w=JSON.parse(raw);return w.savedAt?Math.round((Date.now()-w.savedAt)/60000):null;}catch(e){return null;}
+}
+
+function afterAuth(){
+  if(!WORKER.role||WORKER.role==='owner'){
+    launchApp();
+  } else if(!WORKER.role){
+    g('auth-screen').style.display='none';
+    g('role-screen').style.display='flex';
+  } else {
+    launchApp();
+  }
+}
+
+function selectRole(role){
+  WORKER.role=role;
+  saveSession(WORKER,true,role);// always remember role selection
+  sbPatch('worker_profiles',{role:role},{email:WORKER.email}).catch(function(){});
+  launchApp();
+}
+
+function signOut(){
+  localStorage.removeItem('nl_worker');
+  localStorage.removeItem('nl_worker_v2');
+  sessionStorage.removeItem('nl_worker_v2');
+  location.reload();
+}
+
+/* ═══════════════════════════════════════════════════
+   LAUNCH
+═══════════════════════════════════════════════════ */
+function launchApp(){loadPrefs();
+  g('auth-screen').style.display='none';
+  g('role-screen').style.display='none';
+  g('main-app').style.display='flex';
+  var isOwner=WORKER.role==='owner';
+  var isCleaner=WORKER.role==='cleaner';
+  var isKnocker=WORKER.role==='knocker';
+  g('top-name').textContent=WORKER.name;
+  g('top-role').textContent=isOwner?'Owner / Admin':isCleaner?'Window Cleaner':'Door Knocker';
+  g('owner-home').style.display=isOwner?'':'none';
+  g('cleaner-home').style.display=isCleaner?'':'none';
+  g('knocker-home').style.display=isKnocker?'':'none';
+  g('cleaner-earnings').style.display=(isOwner||isCleaner)?'':'none';
+  g('knocker-earnings').style.display=(isOwner||isKnocker)?'':'none';
+  g('nav-knock').style.display=(isOwner||isKnocker)?'':'none';
+  var sl=g('session-label');
+  if(sl){var age=getSessionAge();var raw=sessionStorage.getItem('nl_worker_v2')||localStorage.getItem('nl_worker_v2');var rem=false;try{rem=JSON.parse(raw||'{}').remember;}catch(e){_warn("[NL]",e&&e.message||e);}sl.innerHTML=age!==null?('Last login<br>'+(age<60?age+'m ago':Math.round(age/60)+'h ago')):(rem?'Remembered':'Session only');}
+  initWorkerOffline();
+  if(!navigator.onLine)loadWorkerCache();
+  if(IS_PREVIEW){
+    // Load demo data so homepage isnt blank in preview
+    var td=todayStr();
+    var tom=new Date();tom.setDate(tom.getDate()+1);
+    var tomStr=tom.getFullYear()+'-'+String(tom.getMonth()+1).padStart(2,'0')+'-'+String(tom.getDate()).padStart(2,'0');
+    // All 17 jobs — no spread operator for Safari compatibility
+    var me=WORKER.name,myEmail=WORKER.email;
+    function mkOpen(id,client,addr,date,time,price,svc,phone,notes){return{id:id,client:client,address:addr,date:date,time:time,price:price,service:svc,phone:phone,notes:notes,status:'upcoming',cleaner:'',cleanerEmail:'',cleanerPay:0,salesRep:'Owner',salesRepPay:0,openShift:true};}
+    function mkMine(id,client,addr,date,time,price,svc,phone,notes){return{id:id,client:client,address:addr,date:date,time:time,price:price,service:svc,phone:phone,notes:notes,status:'upcoming',cleaner:me,cleanerEmail:myEmail,cleanerPay:75,salesRep:'Owner',salesRepPay:0};}
+    WDB.jobs=[
+      mkMine(1,'Christine','1108 Folsom CA',td,'11:00',349,'Window Cleaning','512-701-8015',''),
+      mkMine(2,'Cheryl','121 Hollyann, Folsom CA',td,'14:30',300,'Window Cleaning','916-870-1287',''),
+      mkOpen(3,'Chito','5113 Gold Rush, Folsom CA','2026-06-06','11:00',225,'Window Cleaning','',''),
+      mkOpen(4,'Heidi','Folsom CA','2026-06-06','10:00',0,'Window Cleaning','916-579-4742','Text her on the 5th'),
+      mkOpen(5,'Tim','105 Vista Oak Dr, Folsom CA','2026-06-07','10:00',150,'Window Cleaning','408-892-1650',''),
+      mkOpen(6,'Leslie','Folsom CA','2026-06-07','12:00',150,'Window Cleaning','916-365-3983',''),
+      mkOpen(7,'Ron','3461 Old Tavern Rd, Folsom CA','2026-06-08','14:00',225,'Window Cleaning','','Back glass adds $100'),
+      mkOpen(8,'Praveen','Folsom CA','2026-06-08','11:00',175,'Window Cleaning','',''),
+      mkOpen(9,'Steve Osborn','Folsom CA','2026-06-08','11:00',330,'Window Cleaning','858-337-6370','Text before'),
+      mkOpen(10,'Kevin','Folsom CA','2026-06-08','14:30',150,'Window Cleaning','','1 story text 30 mins before'),
+      mkOpen(11,'Jes','5084 Gold Rush Dr, Folsom CA','2026-06-11','09:30',349,'Window Cleaning','','2 story plus back glass in backyard'),
+      mkOpen(12,'Dave','3341 Gdn Ter Ct, Folsom CA','2026-06-11','14:30',175,'Window Cleaning','415-686-0862',''),
+      mkOpen(13,'Solar & Window Client','Folsom CA','2026-06-12','11:00',399,'Solar & Window Cleaning','925-577-7437','Solar and window'),
+      mkOpen(14,'Window Client','Folsom CA','2026-06-12','14:00',150,'Window Cleaning','949-735-5531',''),
+      mkOpen(15,'Charles Brown','14858 Auburn Smt Dr, Folsom CA','2026-06-15','10:00',199,'Window Cleaning','510-610-9898',''),
+      mkOpen(16,'Anthony','4980 Covered Wagon Cir, Folsom CA','2026-06-19','10:00',300,'Window Cleaning','908-892-5540',''),
+      mkOpen(17,'Donna Thompson','5126 Gold Rush Dr, Folsom CA','2026-06-26','10:00',225,'Window Cleaning','916-719-9256','Text day before')
+    ];
+    WDB.empLogs=[
+      {id:1,empName:me,date:td,pay:75,hours:2,jobClient:'Christine'},
+      {id:2,empName:me,date:td,pay:75,hours:1.5,jobClient:'Cheryl'}
+    ];
+    WDB.workerProfiles=[
+      {id:1,name:'Devin',email:'devin@nextlocal.com',role:'cleaner'}
+    ];
+    WDB.jobBids=[
+      {id:1001,job_id:11,job_client:'Jes',job_date:'2026-06-11',job_price:349,worker_email:myEmail,worker_name:me,pay_type:'commission',pay_amount:104.70,pay_detail:'{"pct":30}',note:'Have experience with 2-story jobs',status:'pending'}
+    ];
+    WDB.knockData={};
+    WDB.knockData[td]={yes:3,no:8,na:4,crashout:1,log:[
+      {result:'yes',worker:me,time:new Date().toISOString(),address:'142 Elm St'},
+      {result:'no',worker:me,time:new Date().toISOString(),address:'144 Elm St'},
+      {result:'yes',worker:me,time:new Date().toISOString(),address:'146 Elm St'},
+      {result:'yes',worker:me,time:new Date().toISOString(),address:'148 Elm St'}
+    ]};
+    renderCurrentPage();
+  } else {
+    loadData();
+    if(_syncInterval)clearInterval(_syncInterval);
+    _syncInterval=setInterval(loadData,15000);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   DATA LOAD (from shared Supabase CRM table)
+═══════════════════════════════════════════════════ */
+async function loadData(){
+  showLoading();
+  try{
+    var rows=await sbFetch('crm_data',{select:'*',eq:{id:'main'}});
+    if(rows&&rows[0]){
+      var r=rows[0];
+      WDB.jobs=r.jobs||[];
+      WDB.invoices=r.invoices||[];
+      WDB.contacts=r.contacts||[];
+      WDB.knockData=r.knock_data||{};
+      WDB.employees=r.employees||[];
+      WDB.empLogs=r.emp_logs||[];
+      WDB.pipeline=r.pipeline||[];
+      WDB.territories=r.territories||[];
+    }
+    // Load worker messages
+    var msgs=await sbFetch('worker_messages',{select:'*'}).catch(function(){return[];});
+    if(Array.isArray(msgs))WDB.messages=msgs.sort(function(a,b){return a.created_at.localeCompare(b.created_at);});
+    // Load job claims
+    var claims=await sbFetch('job_claims',{select:'*'}).catch(function(){return[];});
+    if(Array.isArray(claims))WDB.jobClaims=claims;
+    // Load job bids
+    var bids=await sbFetch('job_bids',{select:'*'}).catch(function(){return[];});
+    if(Array.isArray(bids))WDB.jobBids=bids;
+    // Load territories
+    var terrs=(rows&&rows[0]&&rows[0].territories)||[];
+    WDB.territories=terrs;
+    // Load worker profiles (for owner management)
+    var wps=await sbFetch('worker_profiles',{select:'*'}).catch(function(){return[];});
+    if(Array.isArray(wps))WDB.workerProfiles=wps;
+    cacheWorkerData();
+    renderCurrentPage();
+  }catch(e){
+    if(!IS_PREVIEW){
+      _warn('Sync error:',e.message||e);
+      setSyncStatus(false, e.message||String(e));
+    }
+  }
+  hideLoading();
+}
+
+async function saveToSharedDB(){
+  // Patch back knock data and pipeline to main CRM table
+  return sbPatch('crm_data',{knock_data:WDB.knockData,pipeline:WDB.pipeline},{id:'main'});
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════ */
+function navTo(page){
+  // Verify session still valid on each navigation
+  if(WORKER.role&&!checkSavedSession()&&page!=='home'){
+    // Session expired during use — soft warning, don't force logout
+    console.warn('[NL] Session may have expired');
+  }
+  _currentPage=page;
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+  var pg=g('page-'+page);if(pg)pg.classList.add('active');
+  var nb=g('nav-'+page);if(nb)nb.classList.add('active');
+  renderCurrentPage();
+  if(page==='knock')initWorkerKnockMap();
+  var chatArea=g('chat-input-area');
+  if(chatArea)chatArea.style.display=page==='messages'?'flex':'none';
+}
+
+function renderCurrentPage(){
+  // Guard: ensure WDB is initialized before any render
+  if(!WDB.jobs)WDB.jobs=[];
+  if(!WDB.jobClaims)WDB.jobClaims=[];
+  if(!WDB.jobBids)WDB.jobBids=[];
+  if(!WDB.empLogs)WDB.empLogs=[];
+  if(!WDB.knockData)WDB.knockData={};
+  if(_currentPage==='home'){renderHome();}
+  else if(_currentPage==='schedule')renderSchedule();
+  else if(_currentPage==='earnings')renderEarnings();
+  else if(_currentPage==='knock')renderKnockLog();
+  else if(_currentPage==='leaderboard')renderLeaderboard();
+  else if(_currentPage==='messages')renderMessages();
+  else if(_currentPage==='settings')renderSettings();
+}
+
+/* ═══════════════════════════════════════════════════
+   HOME PAGE
+═══════════════════════════════════════════════════ */
+function renderHome(){
+  if(WORKER.role==='owner')renderOwnerHome();
+  else if(WORKER.role==='cleaner')renderCleanerHome();
+  else renderKnockerHome();
+}
+
+
+/* ══════════════════════════════════════════
+   OWNER HOME — full business overview
+══════════════════════════════════════════ */
+function renderOwnerHome(){
+  var ohEl=g('owner-home');if(ohEl)ohEl.style.display='';
+  var td=todayStr(),now=new Date();
+  var sM=startOfMonth();
+
+  // Revenue stats — all jobs
+  var allJobs=WDB.jobs;
+  var todayJobs=allJobs.filter(function(j){return j.date===td;});
+  var todayRevenue=todayJobs.reduce(function(s,j){return s+Number(j.price||0);},0);
+  var todayJobCount=todayJobs.length;
+  var monthRevenue=allJobs.filter(function(j){return j.date>=sM;}).reduce(function(s,j){return s+Number(j.price||0);},0);
+  var upcomingRevenue=allJobs.filter(function(j){return j.status==='upcoming'&&j.price>0;}).reduce(function(s,j){return s+Number(j.price||0);},0);
+
+  var rt=g('ow-rev-today');if(rt)rt.textContent=money(todayRevenue);
+  var jt=g('ow-jobs-today');if(jt)jt.textContent=todayJobCount;
+  var rm=g('ow-rev-month');if(rm)rm.textContent=money(monthRevenue);
+  var ru=g('ow-rev-upcoming');if(ru)ru.textContent=money(upcomingRevenue);
+
+  // Pending claims alert
+  var pending=WDB.jobClaims.filter(function(c){return c.status==='pending';});
+  var ca=g('ow-claims-alert');
+  if(ca){
+    if(pending.length){
+      ca.style.display='';
+      ca.innerHTML='<div style="background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:4px;padding:12px 14px;cursor:pointer" onclick="renderOwnerClaimsExpanded()">'+
+        '<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:2px">'+pending.length+' pending job request'+(pending.length>1?'s':'')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">Tap to review and approve</div>'+
+      '</div>';
+    } else {ca.style.display='none';}
+  }
+
+  // Todays jobs — all workers
+  var tj=g('ow-today-jobs');
+  if(tj){
+    var tJobs=allJobs.filter(function(j){return j.date===td;}).sort(function(a,b){return(a.time||'').localeCompare(b.time||'');});
+    tj.innerHTML=tJobs.length?tJobs.map(function(j){
+      return '<div class="card" style="padding:11px;margin-bottom:6px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+          '<div>'+
+            '<div style="font-weight:600;font-size:13px">'+esc(j.client)+'</div>'+
+            '<div style="font-size:11px;color:var(--text3)">'+(j.time?fmtTime(j.time)+' &bull; ':'')+esc(j.service||'')+'</div>'+
+            '<div style="font-size:11px;color:var(--text2);margin-top:2px">Cleaner: '+esc(j.cleaner||'Unassigned')+'</div>'+
+          '</div>'+
+          '<div style="text-align:right">'+
+            '<div style="font-weight:700;color:var(--accent)">'+money(j.price)+'</div>'+
+            '<span class="tag '+(j.status==='done'?'tag-done':'tag-blue')+'">'+j.status+'</span>'+
+          '</div>'+
+        '</div></div>';
+    }).join(''):'<div class="empty" style="padding:14px;font-size:12px">No jobs scheduled for today.</div>';
+  }
+
+  // Workers roster
+  var wl=g('ow-workers-list');
+  if(wl){
+    var workers=WDB.workerProfiles.filter(function(w){return w.role&&w.role!=='owner';});
+    wl.innerHTML=workers.length?workers.map(function(w){
+      var activeJobs=allJobs.filter(function(j){return j.status==='upcoming'&&(j.cleanerEmail===w.email||(j.cleaner&&j.cleaner.toLowerCase()===(w.name||'').toLowerCase()));}).length;
+      var todayW=allJobs.filter(function(j){return j.date===td&&(j.cleanerEmail===w.email||(j.cleaner&&j.cleaner.toLowerCase()===(w.name||'').toLowerCase()));}).length;
+      return '<div class="card" style="padding:10px 12px;margin-bottom:6px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+          '<div>'+
+            '<div style="font-size:13px;font-weight:600">'+esc(w.name||'Unknown')+'</div>'+
+            '<div style="font-size:11px;color:var(--text3)">'+esc(w.role||'—')+'</div>'+
+          '</div>'+
+          '<div style="text-align:right;font-size:11px;color:var(--text3)">'+
+            todayW+' today &bull; '+activeJobs+' upcoming'+
+          '</div>'+
+        '</div></div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">No workers added yet.</div>';
+  }
+
+  // All upcoming jobs
+  var uj=g('ow-upcoming-jobs');
+  if(uj){
+    var upcoming=allJobs.filter(function(j){return j.status==='upcoming'&&j.date>=td;}).sort(function(a,b){return a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||'');}).slice(0,20);
+    uj.innerHTML=upcoming.length?upcoming.map(function(j){
+      var isUnassigned=!j.cleaner||j.cleaner==='Unassigned'||j.cleaner==='';
+      return '<div class="card" style="padding:10px 12px;margin-bottom:6px;border-left:3px solid '+(isUnassigned?'rgba(77,166,255,.3)':'var(--accent)')+'" >'+
+        '<div style="display:flex;justify-content:space-between">'+
+          '<div>'+
+            '<div style="font-size:13px;font-weight:600">'+esc(j.client)+'</div>'+
+            '<div style="font-size:11px;color:var(--text3)">'+j.date+(j.time?' &bull; '+fmtTime(j.time):'')+(j.service?' &bull; '+esc(j.service):'')+'</div>'+
+            '<div style="font-size:11px;color:'+(isUnassigned?'rgba(77,166,255,.6)':'var(--text2)')+';margin-top:1px">'+(isUnassigned?'Unassigned':'Assigned: '+esc(j.cleaner))+'</div>'+
+          '</div>'+
+          '<div style="font-weight:700;color:var(--accent)">'+money(j.price)+'</div>'+
+        '</div></div>';
+    }).join(''):'<div class="empty" style="padding:14px;font-size:12px">No upcoming jobs.</div>';
+  }
+}
+
+function renderOwnerClaimsExpanded(){
+  // Show full claim management inline
+  var ca=g('ow-claims-alert');
+  if(!ca)return;
+  var pending=WDB.jobClaims.filter(function(c){return c.status==='pending';});
+  ca.innerHTML='<div class="sec-label">Pending Requests</div>'+
+    pending.map(function(c){
+      var cid=c.id,jid=c.job_id;
+      return '<div class="card" style="border-left:3px solid var(--accent);padding:12px;margin-bottom:8px">'+
+        '<div style="font-weight:600;font-size:13px;margin-bottom:3px">'+esc(c.worker_name||'Worker')+' wants:</div>'+
+        '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">'+esc(c.job_client||'')+' &bull; '+(c.job_date||'')+' &bull; '+money(c.job_price||0)+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          '<button class="btn btn-primary btn-sm" data-cid="'+cid+'" data-jid="'+jid+'" data-wn="'+esc(c.worker_name||'')+'" data-we="'+esc(c.worker_email||'')+'" onclick="approveJobClaim(this.dataset.cid,this.dataset.jid,this.dataset.wn,this.dataset.we)">Approve</button>'+
+          '<button class="btn btn-ghost btn-sm" data-cid="'+cid+'" onclick="denyJobClaim(this.dataset.cid)">Deny</button>'+
+        '</div></div>';
+    }).join('');
+}
+
+function renderCleanerHome(){
+  var td=todayStr(),now=new Date();
+  var sW=daysAgo(6),sM=startOfMonth();
+  // My jobs = jobs where cleaner name matches
+  var myName=WORKER.name;
+  function isMyJob(j){
+    if(WORKER.role==='owner')return true;
+    // Match by email first (most reliable), then name
+    if(j.cleanerEmail&&j.cleanerEmail===WORKER.email)return true;
+    if(!j.cleaner||j.cleaner==='Owner'||j.cleaner==='Unassigned')return false;
+    return j.cleaner.toLowerCase()===myName.toLowerCase();
+  }
+  var myLogs=WDB.empLogs.filter(function(l){return l.empName&&l.empName.toLowerCase()===myName.toLowerCase();});
+  var payToday=myLogs.filter(function(l){return l.date===td;}).reduce(function(s,l){return s+l.pay;},0);
+  var payWeek=myLogs.filter(function(l){return l.date>=sW;}).reduce(function(s,l){return s+l.pay;},0);
+  var payMonth=myLogs.filter(function(l){return l.date>=sM;}).reduce(function(s,l){return s+l.pay;},0);
+  var todayJobs=WDB.jobs.filter(function(j){return j.date===td&&isMyJob(j);}).sort(function(a,b){return(a.time||'').localeCompare(b.time||'');});
+  g('cs-pay-today').textContent=money(payToday);
+  g('cs-jobs-today').textContent=todayJobs.length;
+  g('cs-pay-week').textContent=money(payWeek);
+  g('cs-pay-month').textContent=money(payMonth);
+  // Todays job cards
+  g('cleaner-jobs-list').innerHTML=todayJobs.length?todayJobs.map(function(j){return buildJobCard(j);}).join(''):'<div class="empty">No jobs assigned for today.</div>';
+  // Open shifts
+  var openJobs=WDB.jobs.filter(function(j){return j.status==='upcoming'&&(j.openShift||!j.cleaner||j.cleaner==='Unassigned')&&j.date>=td;});
+  g('open-jobs-list').innerHTML=openJobs.length?openJobs.map(function(j){
+    return'<div class="card" style="border:1px solid rgba(120,200,255,.35);border-left:4px solid rgba(120,200,255,.8);background:rgba(77,166,255,.05)">'+
+      '<div class="card-header" style="margin-bottom:6px">'+
+        '<div><div class="card-title">'+esc(j.client)+'</div><div class="card-sub">'+j.date+(j.time?' at '+fmtTime(j.time):'')+'</div></div>'+
+        '<span class="tag tag-blue">Open Shift</span>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">'+esc(j.service||'Window Cleaning')+(j.address?' &bull; '+esc(j.address.split(',')[0]):'')+'</div>'+
+      '<div style="font-size:20px;font-weight:700;color:var(--accent);margin-bottom:10px">'+money(j.price)+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+        '<button class="btn btn-outline btn-sm" style="min-height:42px" data-jid="'+j.id+'" onclick="claimJob(this.dataset.jid)">Claim Job</button>'+
+        '<button class="btn btn-primary btn-sm" style="min-height:42px;background:rgba(120,200,255,.9);border-color:transparent;color:#000" data-jid="'+j.id+'" onclick="openBidModal(this.dataset.jid)">Place Bid</button>'+
+      '</div>'+
+    '</div>';
+  }).join(''):'<div class="empty" style="padding:16px;font-size:12px">No open shifts right now.</div>';
+}
+
+function buildJobCard(j){
+  var statusProgress=j.status==='done'?100:j._enRoute?33:j._arrived?66:0;
+  var statusLabel=j.status==='done'?'Done':j._arrived?'On Site':j._enRoute?'En Route':'Upcoming';
+  return'<div class="job-card" id="jcard-'+j.id+'">'+
+    '<div class="job-status-bar"><div class="job-status-fill" style="width:'+statusProgress+'%"></div></div>'+
+    '<div class="job-card-header">'+
+      '<div class="job-card-client">'+esc(j.client)+'</div>'+
+      '<div class="job-card-meta">'+
+        (j.time?'<span>'+fmtTime(j.time)+'</span>':'')+
+        '<span>'+esc(j.service||'Window Cleaning')+'</span>'+
+        '<span class="tag '+(j.status==='done'?'tag-done':'tag-blue')+'">'+statusLabel+'</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="job-card-body">'+
+      (j.address?'<div class="job-card-addr">📍 '+esc(j.address)+'</div>':'')+
+      (j.notes?'<div style="font-size:11px;color:var(--text3);margin-bottom:6px">'+esc(j.notes)+'</div>':'')+
+      '<div class="job-card-pay">'+money(j.cleanerPay||0)+' <span style="font-size:13px;color:var(--text3);font-weight:400">your pay</span></div>'+
+      '<div class="job-card-actions three">'+
+        (j.address?'<button class="btn btn-primary btn-sm" onclick="openNav(\''+esc(j.address)+'\')">Navigate</button>':'<div></div>')+
+        (j.phone?'<a href="tel:'+esc(j.phone)+'" class="btn btn-ghost btn-sm" style="text-decoration:none">Call</a>':'<div></div>')+
+        '<button class="btn btn-ghost btn-sm" onclick="openJobDetail('+j.id+')">Details</button>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'+
+        (j.status!=='done'?'<button class="btn btn-outline btn-sm" onclick="markEnRoute('+j.id+')">En Route</button>':'<div></div>')+
+        (j.status!=='done'?'<button class="btn btn-success btn-sm" onclick="markJobDone('+j.id+')">Mark Done</button>':'<div></div>')+
+        '<button class="btn btn-ghost btn-sm" data-jid="'+j.id+'" data-pt="before" onclick="openPhotoCapture(this.dataset.jid,this.dataset.pt)" title="Before photo" style="font-size:16px">📷</button>'+
+        '<button class="btn btn-ghost btn-sm" data-jid="'+j.id+'" data-pt="after" onclick="openPhotoCapture(this.dataset.jid,this.dataset.pt)" title="After photo" style="font-size:16px">✅📷</button>'+
+      '</div>'+
+      (j.photos&&(j.photos.before||j.photos.after)?
+        '<div style="display:flex;gap:4px;margin-top:6px">'+
+          (j.photos.before?'<div style="flex:1;text-align:center"><div style="font-size:9px;color:var(--text3);margin-bottom:2px">BEFORE</div><img src="'+j.photos.before+'" style="width:100%;max-height:80px;object-fit:cover;border-radius:3px;border:1px solid var(--border)"></div>':'')+
+          (j.photos.after?'<div style="flex:1;text-align:center"><div style="font-size:9px;color:var(--accent);margin-bottom:2px">AFTER</div><img src="'+j.photos.after+'" style="width:100%;max-height:80px;object-fit:cover;border-radius:3px;border:1px solid var(--accent-border)"></div>':'')+
+        '</div>':'')+'</div></div>';
+}
+
+
+function getMyTerritories(){
+  // Pull from WDB if available
+  var terrs=[];
+  if(WDB.territories){
+    WDB.territories.forEach(function(t){
+      if(t.worker.toLowerCase()===WORKER.name.toLowerCase())terrs.push(t);
+    });
+  }
+  return terrs;
+}
+
+function renderKnockerHome(){
+  var khEl=g('knocker-home');if(khEl)khEl.style.display='';
+  var chEl=g('cleaner-home');if(chEl)chEl.style.display='none';
+  var td=todayStr(),now=new Date(),sW=daysAgo(6),sM=startOfMonth();
+  var myName=WORKER.name,myEmail=WORKER.email;
+
+  // Greeting
+  var hr=now.getHours();
+  var greet=hr<12?'Good morning':(hr<17?'Good afternoon':'Good evening');
+  var gEl=g('kh-greeting');if(gEl)gEl.textContent=greet+', '+myName.split(' ')[0]+'!';
+  var DNAMES2=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MNAMES2=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dEl=g('kh-date-line');if(dEl)dEl.textContent=DNAMES2[now.getDay()]+', '+MNAMES2[now.getMonth()]+' '+now.getDate()+', '+now.getFullYear();
+
+  // Knock stats
+  var todayKnocks=WDB.knockData[td]||{yes:0,no:0,na:0,crashout:0};
+  var doors=(todayKnocks.yes||0)+(todayKnocks.no||0)+(todayKnocks.na||0)+(todayKnocks.crashout||0);
+  var leads=todayKnocks.yes||0;
+  var convRate=doors>0?Math.round(leads/doors*100):0;
+
+  // Commission this week
+  var weekJobs=WDB.jobs.filter(function(j){return j.date>=sW&&j.salesRep&&j.salesRep.toLowerCase()===myName.toLowerCase();});
+  var weekComm=weekJobs.reduce(function(s,j){return s+(Number(j.salesRepPay)||0);},0);
+
+  var ksD=g('ks-doors');if(ksD)ksD.textContent=doors;
+  var ksL=g('ks-leads');if(ksL)ksL.textContent=leads;
+  var ksC=g('ks-commission');if(ksC)ksC.textContent=money(weekComm);
+  var ksCV=g('ks-conv');if(ksCV)ksCV.textContent=doors?convRate+'%':'—';
+  var dsub=g('ks-doors-sub');if(dsub)dsub.textContent=doors?'knocked today':'Start knocking!';
+  var lsub=g('ks-leads-sub');if(lsub)lsub.textContent=leads?leads+' interested':'Keep going';
+  var csub=g('ks-comm-sub');if(csub)csub.textContent='this week';
+
+  // ── MINI CALENDAR ──
+  var calEl=g('kh-mini-cal');
+  if(calEl){
+    var yr=now.getFullYear(),mo=now.getMonth();
+    var firstDay=new Date(yr,mo,1).getDay();
+    var daysInMonth=new Date(yr,mo+1,0).getDate();
+    var cal='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:3px;overflow:hidden">';
+    ['S','M','T','W','T','F','S'].forEach(function(d){cal+='<div style="background:var(--surface);padding:4px 2px;text-align:center;font-size:9px;font-weight:700;color:var(--text3)">'+d+'</div>';});
+    for(var ci=0;ci<firstDay;ci++)cal+='<div style="background:var(--surface);min-height:38px"></div>';
+    for(var cd=1;cd<=daysInMonth;cd++){
+      var cds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(cd).padStart(2,'0');
+      var cdJobs=WDB.jobs.filter(function(j){return j.date===cds;});
+      var openDay=cdJobs.filter(function(j){return !j.cleaner||j.cleaner===''||j.openShift;});
+      var hasKnocks=WDB.knockData[cds]&&((WDB.knockData[cds].yes||0)+(WDB.knockData[cds].no||0))>0;
+      var isToday=cds===td;
+      cal+='<div onclick="schedCalClick()" style="background:var(--surface2);min-height:38px;padding:3px;cursor:pointer;'+(isToday?'outline:1.5px solid var(--accent);outline-offset:-1.5px':'')+'">' +
+        '<div style="font-size:10px;font-weight:700;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;'+(isToday?'background:var(--accent);color:#000':'color:var(--text3)')+';margin-bottom:1px">'+cd+'</div>'+
+        openDay.slice(0,2).map(function(){return'<div style="height:3px;background:rgba(120,200,255,.55);border-radius:1px;margin-bottom:1px"></div>';}).join('')+
+        (hasKnocks?'<div style="height:3px;background:rgba(77,166,255,.4);border-radius:1px;margin-bottom:1px"></div>':'')+
+      '</div>';
+    }
+    cal+='</div>';
+    cal+='<div style="display:flex;gap:10px;margin-top:5px;font-size:10px;color:var(--text3)">'+
+      '<span><span style="display:inline-block;width:8px;height:3px;background:rgba(120,200,255,.55);border-radius:1px;margin-right:3px"></span>Open jobs</span>'+
+      '<span><span style="display:inline-block;width:8px;height:3px;background:rgba(77,166,255,.4);border-radius:1px;margin-right:3px"></span>Knocked</span>'+
+    '</div>';
+    calEl.innerHTML=cal;
+  }
+
+  // ── MY TERRITORY ──
+  var myTerrs=getMyTerritories();
+  if(myTerrs.length){
+    var oc2=g('kh-open-count');
+    if(oc2)oc2.title='Your areas: '+myTerrs.map(function(t){return t.area;}).join(', ');
+  }
+  // ── OPEN JOBS ──
+  var openJobs=WDB.jobs.filter(function(j){return j.status==='upcoming'&&j.date>=td&&(!j.cleaner||j.cleaner===''||j.cleaner==='Unassigned'||j.openShift);}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  var oc=g('kh-open-count');if(oc)oc.textContent=openJobs.length+' available';
+  var koj=g('knocker-open-jobs');
+  if(koj){
+    koj.innerHTML=openJobs.slice(0,4).map(function(j){
+      var pend=jobIsPending&&jobIsPending(j);
+      return '<div class="card" style="border:1px solid rgba(120,200,255,.35);border-left:4px solid rgba(120,200,255,.8);background:rgba(77,166,255,.04);padding:12px;margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+          '<div>'+
+            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'+
+              '<div style="font-weight:700;font-size:13px">'+esc(j.client)+'</div>'+
+              '<span style="font-size:9px;font-weight:700;background:rgba(120,200,255,.2);color:#7dd3fc;border:1px solid rgba(120,200,255,.4);padding:1px 5px;border-radius:2px">OPEN</span>'+
+            '</div>'+
+            '<div style="font-size:11px;color:var(--text3)">'+j.date+(j.time?' &bull; '+fmtTime(j.time):'')+'</div>'+
+            (j.address?'<div style="font-size:11px;color:var(--text2);margin-top:1px">'+esc(j.address.split(',')[0])+'</div>':'')+
+            (j.notes?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+esc(j.notes)+'</div>':'')+
+          '</div>'+
+          '<div style="font-weight:700;font-size:18px;color:var(--accent);flex-shrink:0;margin-left:10px">'+money(j.price)+'</div>'+
+        '</div>'+
+        (pend?
+          '<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px;background:var(--surface3);border-radius:3px">Bid submitted — waiting for approval</div>':
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+            '<button class="btn btn-ghost btn-sm" data-jid="'+j.id+'" onclick="claimJob(this.dataset.jid)">Claim</button>'+
+            '<button class="btn btn-primary btn-sm" style="background:rgba(100,180,255,.85);border-color:transparent;color:#000" data-jid="'+j.id+'" onclick="openBidModal(this.dataset.jid)">Place Bid</button>'+
+          '</div>')+
+      '</div>';
+    }).join('')+(openJobs.length>4?'<button class="btn btn-ghost btn-full btn-sm" onclick="navTo("schedule")">See all '+openJobs.length+' open jobs →</button>':'')
+    ||'<div style="font-size:12px;color:var(--text3);padding:10px 0">No open jobs right now.</div>';
+  }
+
+  // ── KNOCK LOG ──
+  var kl=g('knocker-leads-list');
+  if(kl){
+    var log=(todayKnocks.log||[]).slice().reverse().slice(0,5);
+    if(doors>0){
+      kl.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">'+
+        ['yes','no','na','crashout'].map(function(r){
+          var labels={yes:'Interested',no:'Not home',na:'No answer',crashout:'Crash out'};
+          return '<div style="background:var(--surface3);border-radius:3px;padding:8px;text-align:center">'+
+            '<div style="font-size:22px;font-weight:700;color:'+(r==='yes'?'var(--accent)':'var(--text)')+'">'+( todayKnocks[r]||0)+'</div>'+
+            '<div style="font-size:9px;color:var(--text3);margin-top:2px">'+labels[r]+'</div></div>';
+        }).join('')+'</div>'+
+        (log.length?log.map(function(l){return'<div class="row"><div style="font-size:12px;color:var(--text2)">'+esc(l.address||'Unknown address')+'</div><span class="tag '+(l.result==='yes'?'tag-blue':'tag-gray')+'">'+l.result+'</span></div>';}).join(''):'');
+    } else {
+      kl.innerHTML='<div style="background:var(--surface3);border-radius:4px;padding:14px;text-align:center">'+
+        '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:3px">No knocks logged today</div>'+
+        '<div style="font-size:11px;color:var(--text3)">Open the Territory Map to start tracking doors.</div>'+
+      '</div>';
+    }
+  }
+
+  // ── TIPS ──
+  var tips=g('kh-tips');
+  if(tips){
+    var tipList=[];
+    var doorsGoal=30;
+    if(doors===0)tipList.push({icon:'🚪',text:'Start knocking! Tap Territory Map above to see houses in your area.'});
+    else if(doors<doorsGoal)tipList.push({icon:'📈',text:'You have knocked '+doors+' doors today. Goal is '+doorsGoal+'. Keep going — '+( doorsGoal-doors)+' more to hit your target.'});
+    else tipList.push({icon:'⭐',text:'Great day! Youve hit your daily door goal of '+doorsGoal+'. Every extra door is a bonus lead.'});
+    if(convRate>0&&convRate<10)tipList.push({icon:'💡',text:'Your conversion rate is '+convRate+'%. Try leading with a seasonal offer or showing before/after photos to get more interest.'});
+    if(openJobs.length>0)tipList.push({icon:'💼',text:openJobs.length+' window cleaning job'+(openJobs.length>1?'s are':' is')+' open. Bid on one to earn extra income on top of your knocking commission.'});
+    if(!tipList.length)tipList.push({icon:'✅',text:'You are on track. Keep knocking and follow up on your leads from earlier this week.'});
+    tips.innerHTML=tipList.map(function(t){
+      return '<div style="display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:11px 13px;margin-bottom:8px">'+
+        '<div style="font-size:20px;flex-shrink:0">'+t.icon+'</div>'+
+        '<div style="font-size:12px;color:var(--text2);line-height:1.5">'+t.text+'</div>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   JOB ACTIONS
+═══════════════════════════════════════════════════ */
+function openNav(address){
+  var url='https://maps.google.com/maps?q='+encodeURIComponent(address);
+  window.open(url,'_blank');
+}
+
+function markEnRoute(jobId){
+  // Tag in local state for UI feedback
+  var j=WDB.jobs.find(function(x){return x.id==jobId;});if(!j)return;
+  j._enRoute=true;
+  addNotification('En route to '+j.client+' — synced');
+  g('cleaner-jobs-list').innerHTML=WDB.jobs.filter(function(x){return x.date===todayStr()&&(!x.cleaner||x.cleaner==='Owner'||x.cleaner===WORKER.name);}).sort(function(a,b){return(a.time||'').localeCompare(b.time||'');}).map(buildJobCard).join('');
+}
+
+async function markJobDone(jobId){
+  var j=WDB.jobs.find(function(x){return x.id==jobId;});if(!j)return;
+  if(!confirm('Mark '+j.client+' as done?'))return;
+  j.status='done';j._arrived=false;j._enRoute=false;
+  // Patch back to Supabase
+  showLoading();
+  try{
+    var rows=await sbFetch('crm_data',{select:'*',eq:{id:'main'}});
+    if(rows&&rows[0]){
+      var r=rows[0];r.jobs=WDB.jobs;
+      await sbPatch('crm_data',{jobs:r.jobs},{id:'main'});
+    }
+    addNotification('Job with '+j.client+' marked done!');
+  }catch(e){_warn(e);}
+  hideLoading();
+  renderHome();
+}
+
+async function claimJob(jobId){
+  var j=WDB.jobs.find(function(x){return x.id==jobId;});if(!j)return;
+  if(j.cleaner&&j.cleaner!==''&&j.cleaner!=='Unassigned'&&!j.openShift){
+    alert('This job is already assigned to '+j.cleaner+'.');return;
+  }
+  if(!confirm('Claim this job with '+j.client+' on '+j.date+'?'))return;
+  j.cleaner=WORKER.name;j.openShift=false;
+  showLoading();
+  try{
+    var rows=await sbFetch('crm_data',{select:'*',eq:{id:'main'}});
+    if(rows&&rows[0]){await sbPatch('crm_data',{jobs:WDB.jobs},{id:'main'});}
+    addNotification('Job claimed! '+j.client+' on '+j.date);
+  }catch(e){_warn("[NL]",e&&e.message||e);}
+  hideLoading();renderHome();
+}
+
+function openJobDetail(jobId){
+  var j=WDB.jobs.find(function(x){return x.id==jobId;});if(!j)return;
+  _reportJobId=jobId;
+  g('jdm-title').textContent=j.client;
+  g('jdm-body').innerHTML=
+    '<div class="row"><span class="row-label">Date</span><span class="row-val">'+j.date+'</span></div>'+
+    '<div class="row"><span class="row-label">Time</span><span class="row-val">'+(j.time?fmtTime(j.time):'TBD')+'</span></div>'+
+    '<div class="row"><span class="row-label">Service</span><span class="row-val">'+esc(j.service||'Window Cleaning')+'</span></div>'+
+    '<div class="row"><span class="row-label">Address</span><span class="row-val">'+esc(j.address||'—')+'</span></div>'+
+    (j.phone?'<div class="row"><span class="row-label">Phone</span><span class="row-val"><a href="tel:'+esc(j.phone)+'" style="color:var(--accent)">'+esc(j.phone)+'</a></span></div>':'')+
+    '<div class="row"><span class="row-label">Revenue</span><span class="row-val">'+money(j.price)+'</span></div>'+
+    '<div class="row"><span class="row-label">Your Pay</span><span class="row-val" style="color:var(--accent)">'+money(j.cleanerPay||0)+'</span></div>'+
+    (j.notes?'<div style="background:var(--surface3);border-radius:4px;padding:10px;margin-top:8px;font-size:12px;color:var(--text2)">'+esc(j.notes)+'</div>':'');
+  g('jdm-actions').innerHTML=
+    (j.address?'<button class="btn btn-primary" onclick="openNav(\''+esc(j.address)+'\');closeModal(\'job-detail-modal\')">Get Directions</button>':'')+
+    '<button class="btn btn-ghost" onclick="openModal(\'report-modal\')">Report Issue</button>'+
+    (j.status!=='done'?'<button class="btn btn-success" style="grid-column:1/-1" onclick="markJobDone('+j.id+');closeModal(\'job-detail-modal\')">Mark Job Done</button>':'');
+  openModal('job-detail-modal');
+}
+
+async function submitReport(){
+  var type=g('report-type').value,desc=g('report-desc').value.trim();
+  if(!desc){alert('Describe the issue.');return;}
+  var report={id:genId(),jobId:_reportJobId,worker:WORKER.name,type:type,desc:desc,date:todayStr(),ts:new Date().toISOString()};
+  // Store in EOD reports array
+  try{
+    var rows=await sbFetch('crm_data',{select:'eod_reports',eq:{id:'main'}});
+    if(rows&&rows[0]){
+      var reports=rows[0].eod_reports||[];reports.push(report);
+      await sbPatch('crm_data',{eod_reports:reports},{id:'main'});
+    }
+    addNotification('Issue report submitted to manager.');
+  }catch(e){_warn("[NL]",e&&e.message||e);}
+  closeModal('report-modal');g('report-desc').value='';
+}
+
+/* ═══════════════════════════════════════════════════
+   SCHEDULE PAGE
+═══════════════════════════════════════════════════ */
+// schedView — defined below
+
+
+/* ── JOB STATUS HELPERS ── */
+function jobIsMine(j){
+  if(WORKER.role==='owner')return true;
+  if(j.cleanerEmail&&j.cleanerEmail===WORKER.email)return true;
+  return j.cleaner&&j.cleaner!=='Owner'&&j.cleaner!=='Unassigned'&&j.cleaner.toLowerCase()===WORKER.name.toLowerCase();
+}
+function jobIsAvailable(j){
+  return j.status==='upcoming'&&(!j.cleaner||j.cleaner===''||j.cleaner==='Unassigned'||j.openShift);
+}
+function jobIsPending(j){
+  var hasClaim=WDB.jobClaims.some(function(c){return c.job_id==j.id&&c.worker_email===WORKER.email&&c.status==='pending';});
+  var hasBid=WDB.jobBids.some(function(b){return b.job_id==j.id&&b.worker_email===WORKER.email&&b.status==='pending';});
+  return hasClaim||hasBid;
+}
+
+function schedView(mode,btn){
+  _schedView=mode;
+  document.querySelectorAll('#page-schedule .btn').forEach(function(b){
+    b.style.background='';b.style.color='';b.style.borderColor='';
+    b.className='btn btn-sm btn-ghost';
+  });
+  btn.style.background='var(--accent)';btn.style.color='#000';btn.style.borderColor='var(--accent)';
+  btn.className='btn btn-sm';
+  g('sched-day-detail').innerHTML='';
+  renderSchedule();
+}
+
+function renderSchedule(){
+  var td=todayStr();
+  var content='';
+
+  if(_schedView==='day'){
+    // TODAY — show my jobs as full cards, available jobs as request cards
+    var myTodayJobs=WDB.jobs.filter(function(j){return j.date===td&&jobIsMine(j);}).sort(function(a,b){return(a.time||'').localeCompare(b.time||'');});
+    var availToday=WDB.jobs.filter(function(j){return j.date===td&&jobIsAvailable(j)&&!jobIsMine(j);});
+    var pendingToday=WDB.jobs.filter(function(j){return j.date===td&&jobIsPending(j)&&!jobIsMine(j);});
+
+    content='';
+    if(myTodayJobs.length){
+      content+='<div class="sec-label" style="color:var(--accent)">Your Jobs Today</div>'+myTodayJobs.map(buildJobCard).join('');
+    } else {
+      content+='<div class="card" style="padding:14px;border-left:3px solid var(--border2);margin-bottom:10px"><div style="font-size:13px;color:var(--text2)">No jobs assigned to you today.</div></div>';
+    }
+    if(pendingToday.length){
+      content+='<div class="sec-label" style="margin-top:14px">Pending Approval</div>'+pendingToday.map(function(j){
+        return buildAvailableJobCard(j,'pending');
+      }).join('');
+    }
+    if(availToday.length){
+      content+='<div class="sec-label" style="margin-top:14px">Available Jobs Today</div>'+availToday.map(function(j){
+        return buildAvailableJobCard(j,'available');
+      }).join('');
+    }
+
+  } else if(_schedView==='week'){
+    // WEEK — 14 days, show all jobs with color coding
+    var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var rows='';
+    for(var i=0;i<14;i++){
+      var d2=new Date();d2.setDate(d2.getDate()+i);
+      var ds=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+      var dayAllJobs=WDB.jobs.filter(function(j){return j.date===ds;}).sort(function(a,b){return(a.time||'').localeCompare(b.time||'');});
+      var myCount=dayAllJobs.filter(jobIsMine).length;
+      var availCount=dayAllJobs.filter(function(j){return jobIsAvailable(j)&&!jobIsMine(j);}).length;
+      if(dayAllJobs.length||i<3){
+        rows+='<div style="margin-bottom:10px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'+
+            '<div style="font-size:11px;font-weight:700;color:'+(i===0?'var(--accent)':'var(--text3)')+';text-transform:uppercase;letter-spacing:.5px">'+
+              (i===0?'Today':DAYS[d2.getDay()]+' '+ds)+
+            '</div>'+
+            (availCount>0?'<div style="font-size:10px;color:rgba(77,166,255,.7)">'+availCount+' available</div>':'')+
+          '</div>'+
+          (dayAllJobs.length?dayAllJobs.map(function(j){
+            var mine=jobIsMine(j),avail=jobIsAvailable(j)&&!mine,pend=jobIsPending(j)&&!mine;
+            var bg=mine?'var(--surface2)':avail?'rgba(77,166,255,.06)':'var(--surface2)';
+            var bl=mine?'var(--accent)':avail?'rgba(120,200,255,.7)':pend?'rgba(77,166,255,.2)':'var(--border)';
+            var clickFn=avail&&!pend?'openBidModal('+j.id+')':'openJobDetail('+j.id+')';
+            return'<div class="card" style="border-left:3px solid '+bl+';padding:11px 13px;margin-bottom:6px;cursor:pointer" onclick="'+clickFn+'">'+
+              '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+                '<div style="flex:1;min-width:0">'+
+                  '<div style="font-size:13px;font-weight:600;color:'+(mine?'var(--text)':'var(--text2)')+'">'+esc(j.client)+'</div>'+
+                  '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+
+                    (j.time?'<strong style="color:'+(mine?'var(--accent)':'var(--text3)')+'">'+fmtTime(j.time)+'</strong> &bull; ':'')+
+                    esc(j.service||'Window Cleaning')+
+                    (j.address?' &bull; '+esc(j.address.split(',')[0]):'')+
+                  '</div>'+
+                  (mine?'<div style="font-size:11px;color:var(--accent);margin-top:3px">Your job &bull; '+money(j.cleanerPay||0)+' pay</div>':'')+
+                  (pend?'<div style="font-size:11px;color:var(--text3);margin-top:3px">Waiting for approval</div>':'')+
+                  (avail&&!pend?'<div style="font-size:11px;color:rgba(77,166,255,.7);margin-top:3px">Tap to request</div>':'')+
+                '</div>'+
+                '<div style="text-align:right;margin-left:10px;flex-shrink:0">'+
+                  '<div style="font-size:14px;font-weight:700;color:'+(mine?'var(--accent)':'var(--text3)')+'">'+money(j.price)+'</div>'+
+                  (mine?'<span class="tag tag-blue" style="margin-top:3px;display:inline-block">mine</span>':'')+'</div>'+
+              '</div></div>';
+          }).join(''):'<div style="font-size:11px;color:var(--text3);padding:4px 0">No jobs scheduled</div>')+
+        '</div>';
+      }
+    }
+    content=rows||'<div class="empty">No jobs in the next 2 weeks.</div>';
+
+  } else {
+    // CALENDAR — full month grid synced with owner
+    var now=new Date(),yr=now.getFullYear(),mo=now.getMonth();
+    var firstDay=new Date(yr,mo,1).getDay();
+    var daysInMonth=new Date(yr,mo+1,0).getDate();
+    var monthStr=['January','February','March','April','May','June','July','August','September','October','November','December'][mo]+' '+yr;
+
+    var cal='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+      '<button class="btn btn-ghost btn-sm" onclick="calNavMonth(-1)">&lsaquo; Prev</button>'+
+      '<div style="font-size:13px;font-weight:600;color:var(--text)" id="cal-month-label">'+monthStr+'</div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="calNavMonth(1)">Next &rsaquo;</button>'+
+    '</div>';
+
+    var DOWS=['S','M','T','W','T','F','S'];
+    cal+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:3px;overflow:hidden;margin-bottom:2px">';
+    DOWS.forEach(function(d){cal+='<div style="background:var(--surface);padding:5px 2px;text-align:center;font-size:9px;font-weight:700;color:var(--text3)">'+d+'</div>';});
+    for(var ci=0;ci<firstDay;ci++)cal+='<div style="background:var(--surface);min-height:56px"></div>';
+
+    for(var cd=1;cd<=daysInMonth;cd++){
+      var cds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(cd).padStart(2,'0');
+      var cdJobs=WDB.jobs.filter(function(j){return j.date===cds;});
+      var isToday=cds===td;
+      cal+='<div style="background:var(--surface2);min-height:56px;padding:3px;cursor:pointer;position:relative" data-ds="'+cds+'" onclick="schedDayClick(this.getAttribute(&quot;data-ds&quot;))">' +
+        '<div style="font-size:11px;font-weight:700;color:'+(isToday?'var(--accent)':'var(--text3)')+';width:20px;height:20px;display:flex;align-items:center;justify-content:center;'+(isToday?'background:var(--accent);color:#000;border-radius:50%;':'')+'margin-bottom:2px">'+cd+'</div>'+
+        cdJobs.map(function(j){
+          var mine=jobIsMine(j),avail=jobIsAvailable(j)&&!mine,pend=jobIsPending(j)&&!mine;
+          var bg=mine?'var(--accent)':avail?'rgba(77,166,255,.3)':pend?'rgba(77,166,255,.15)':'var(--surface4)';
+          var tc=mine?'#000':avail?'var(--text)':'var(--text3)';
+          return'<div style="background:'+bg+';color:'+tc+';font-size:9px;font-weight:600;padding:1px 4px;border-radius:2px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+            esc(j.client)+(j.time?' '+fmtTime(j.time):'')+
+          '</div>';
+        }).join('')+
+      '</div>';
+    }
+    cal+='</div>';
+    cal+='<div id="sched-day-detail" style="margin-top:10px"></div>';
+    content=cal;
+  }
+  g('schedule-content').innerHTML=content;
+}
+
+var _calMonth=new Date().getMonth();
+var _calYear=new Date().getFullYear();
+
+function calNavMonth(dir){
+  _calMonth+=dir;
+  if(_calMonth>11){_calMonth=0;_calYear++;}
+  if(_calMonth<0){_calMonth=11;_calYear--;}
+  renderSchedule();
+}
+
+function buildAvailableJobCard(j,state){
+  var isPending=state==='pending';
+  var cardStyle=isPending
+    ? 'border:1px solid rgba(77,166,255,.2);border-left:3px solid rgba(77,166,255,.3);background:var(--surface2);padding:13px;margin-bottom:8px'
+    : 'border:1px solid rgba(120,200,255,.35);border-left:4px solid rgba(120,200,255,.8);background:rgba(77,166,255,.05);padding:13px;margin-bottom:8px';
+  return '<div class="card" style="'+cardStyle+'">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+      '<div>'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'+
+          '<div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(j.client)+'</div>'+
+          (isPending?'<span style="font-size:9px;font-weight:700;background:rgba(77,166,255,.15);color:var(--accent);border:1px solid var(--accent-border);padding:1px 5px;border-radius:2px">PENDING</span>':'<span style="font-size:9px;font-weight:700;background:rgba(120,200,255,.2);color:#7dd3fc;border:1px solid rgba(120,200,255,.4);padding:1px 5px;border-radius:2px">OPEN</span>')+
+        '</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+
+          (j.time?'<strong style="color:var(--accent)">'+fmtTime(j.time)+'</strong> &bull; ':'')+
+          j.date+' &bull; '+esc(j.service||'Window Cleaning')+
+        '</div>'+
+        (j.address?'<div style="font-size:11px;color:var(--text2);margin-top:3px">'+esc(j.address)+'</div>':'')+
+        (j.notes?'<div style="font-size:11px;color:var(--text3);margin-top:3px">'+esc(j.notes)+'</div>':'')+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0;margin-left:12px">'+
+        '<div style="font-size:20px;font-weight:700;color:var(--accent)">'+money(j.price)+'</div>'+
+      '</div>'+
+    '</div>'+
+    (isPending?
+      '<div style="background:var(--surface3);border-radius:3px;padding:10px;text-align:center;font-size:12px;color:var(--text3)">Bid submitted &bull; waiting for Caleb to review</div>':
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+        '<button class="btn btn-outline btn-sm" data-jid="'+j.id+'" onclick="promptClaimJob(this.dataset.jid)">Claim Job</button>'+
+        '<button class="btn btn-primary btn-sm" data-jid="'+j.id+'" onclick="openBidModal(this.dataset.jid)">Place Bid</button>'+
+      '</div>'
+    )+
+  '</div>';
+}
+
+function schedDayClick(ds){
+  var detail=g('sched-day-detail');if(!detail)return;
+  var dayJobs=WDB.jobs.filter(function(j){return j.date===ds;}).sort(function(a,b){return(a.time||'').localeCompare(b.time||'');});
+  if(!dayJobs.length){detail.innerHTML='<div style="font-size:12px;color:var(--text3);padding:10px 0">No jobs on '+ds+'.</div>';return;}
+  detail.innerHTML='<div class="sec-label">'+ds+'</div>'+dayJobs.map(function(j){
+    var mine=jobIsMine(j),avail=jobIsAvailable(j)&&!mine,pend=jobIsPending(j)&&!mine;
+    var bl=mine?'var(--accent)':avail?'rgba(77,166,255,.4)':pend?'rgba(77,166,255,.2)':'var(--border)';
+    return '<div class="card" style="border-left:3px solid '+bl+';padding:13px;margin-bottom:8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+        '<div>'+
+          '<div style="font-size:14px;font-weight:700">'+esc(j.client)+'</div>'+
+          '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+
+            (j.time?'<strong style="color:var(--accent)">'+fmtTime(j.time)+'</strong> &bull; ':'')+
+            esc(j.service||'Window Cleaning')+
+          '</div>'+
+          (j.address?'<div style="font-size:11px;color:var(--text2);margin-top:3px">'+esc(j.address)+'</div>':'')+
+          (j.notes?'<div style="font-size:11px;color:var(--text3);margin-top:3px">'+esc(j.notes)+'</div>':'')+
+          (mine?'<div style="font-size:12px;color:var(--accent);margin-top:4px;font-weight:600">Your job &bull; '+money(j.cleanerPay||0)+' pay</div>':'')+
+        '</div>'+
+        '<div style="font-size:20px;font-weight:700;color:var(--accent);margin-left:12px">'+money(j.price)+'</div>'+
+      '</div>'+
+      (mine?
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          (j.address?'<button class="btn btn-primary btn-sm" onclick="openNav(this.dataset.addr)" data-addr="'+esc(j.address)+'">Navigate</button>':'<div></div>')+
+          '<button class="btn btn-ghost btn-sm" onclick="openJobDetail('+j.id+')">Details</button>'+
+        '</div>':'')+ 
+      (avail&&!pend?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+        '<button class="btn btn-outline btn-sm" data-jid="'+j.id+'" onclick="promptClaimJob(this.dataset.jid)">Claim</button>'+
+        '<button class="btn btn-primary btn-sm" data-jid="'+j.id+'" onclick="openBidModal(this.dataset.jid)">Place Bid</button>'+
+      '</div>':'')+
+      (pend?'<div style="background:var(--surface3);border-radius:3px;padding:10px;text-align:center;font-size:12px;color:var(--text3)">Request pending &bull; waiting for approval</div>':'')+
+      (!mine&&!avail&&!pend?'<div style="font-size:11px;color:var(--text3);text-align:center;padding:6px 0">Assigned to another cleaner</div>':'')+
+    '</div>';
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   EARNINGS PAGE
+═══════════════════════════════════════════════════ */
+function renderEarnings(){
+  if(WORKER.role==='cleaner')renderCleanerEarnings();
+  else renderKnockerEarnings();
+}
+
+function renderCleanerEarnings(){
+  var myName=WORKER.name,td=todayStr(),sW=daysAgo(6),sM=startOfMonth();
+  var myLogs=WDB.empLogs.filter(function(l){return l.empName&&l.empName.toLowerCase()===myName.toLowerCase();});
+  var payT=myLogs.filter(function(l){return l.date===td;}).reduce(function(s,l){return s+l.pay;},0);
+  var jT=myLogs.filter(function(l){return l.date===td;}).length;
+  var payW=myLogs.filter(function(l){return l.date>=sW;}).reduce(function(s,l){return s+l.pay;},0);
+  var jW=myLogs.filter(function(l){return l.date>=sW;}).length;
+  var payM=myLogs.filter(function(l){return l.date>=sM;}).reduce(function(s,l){return s+l.pay;},0);
+  var jM=myLogs.filter(function(l){return l.date>=sM;}).length;
+  var payA=myLogs.reduce(function(s,l){return s+l.pay;},0);
+  var jA=myLogs.length;
+  g('earn-today').textContent=money(payT);g('earn-today-jobs').textContent=jT+' jobs';
+  g('earn-week').textContent=money(payW);g('earn-week-jobs').textContent=jW+' sessions';
+  g('earn-month').textContent=money(payM);g('earn-month-jobs').textContent=jM+' sessions';
+  g('earn-all').textContent=money(payA);g('earn-all-jobs').textContent=jA+' total sessions';
+  var recentLogs=[].concat(myLogs).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,15);
+  g('earn-job-list').innerHTML=recentLogs.length?recentLogs.map(function(l){
+    return'<div class="row"><div><div style="font-size:13px;font-weight:500">'+esc(l.jobClient||'Session')+'</div><div style="font-size:11px;color:var(--text3)">'+l.date+'</div></div><div style="text-align:right"><div style="font-weight:700;color:var(--accent)">'+money(l.pay)+'</div><div style="font-size:11px;color:var(--text3)">'+l.hours+'h</div></div></div>';
+  }).join(''):'<div class="empty">No earnings logged yet.</div>';
+}
+
+function renderKnockerEarnings(){
+  var myName=WORKER.name,td=todayStr(),sW=daysAgo(6),sM=startOfMonth();
+  // Doors knocked
+  function doorCount(dateFilter){
+    return Object.keys(WDB.knockData).filter(dateFilter).reduce(function(s,d){var dk=WDB.knockData[d];return s+(dk.yes||0)+(dk.no||0)+(dk.na||0)+(dk.crashout||0);},0);
+  }
+  var doorsT=doorCount(function(d){return d===td;});
+  var doorsW=doorCount(function(d){return d>=sW;});
+  var doorsM=doorCount(function(d){return d>=sM;});
+  // Sales from pipeline/jobs
+  var mySales=WDB.jobs.filter(function(j){return j.salesRep&&j.salesRep.toLowerCase()===myName.toLowerCase();});
+  var commT=mySales.filter(function(j){return j.date===td;}).reduce(function(s,j){return s+(j.salesRepPay||0);},0);
+  var commW=mySales.filter(function(j){return j.date>=sW;}).reduce(function(s,j){return s+(j.salesRepPay||0);},0);
+  var commM=mySales.filter(function(j){return j.date>=sM;}).reduce(function(s,j){return s+(j.salesRepPay||0);},0);
+  var salesT=mySales.filter(function(j){return j.date===td;}).length;
+  g('ke-today').textContent=money(commT);g('ke-today-d').textContent=doorsT+' doors';
+  g('ke-week').textContent=money(commW);g('ke-week-d').textContent=doorsW+' doors';
+  g('ke-month').textContent=money(commM);g('ke-month-d').textContent=doorsM+' doors';
+  g('ke-sales').textContent=mySales.length;
+  // Goals
+  var todayData=WDB.knockData[td]||{};
+  var doorsGoal=30,leadsGoal=5;
+  var todayDoors=(todayData.yes||0)+(todayData.no||0)+(todayData.na||0)+(todayData.crashout||0);
+  var todayLeads=todayData.yes||0;
+  g('knocker-goals-card').innerHTML=
+    '<div class="sec-label">Daily Goals</div>'+
+    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Doors Knocked</span><span style="font-weight:600">'+todayDoors+' / '+doorsGoal+'</span></div>'+
+    '<div class="prog-bar"><div class="prog-fill" style="width:'+Math.min(100,Math.round(todayDoors/doorsGoal*100))+'%"></div></div></div>'+
+    '<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Interested Leads</span><span style="font-weight:600">'+todayLeads+' / '+leadsGoal+'</span></div>'+
+    '<div class="prog-bar"><div class="prog-fill" style="width:'+Math.min(100,Math.round(todayLeads/leadsGoal*100))+'%"></div></div></div>';
+}
+
+/* ═══════════════════════════════════════════════════
+   KNOCK MAP (WORKER VERSION)
+═══════════════════════════════════════════════════ */
+function initWorkerKnockMap(){
+  if(typeof L==='undefined'){g('knock-map-worker').innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">Map loads on GitHub Pages (Leaflet CDN blocked in preview)</div>';return;}
+  if(!_wKnockMap){
+    _wKnockMap=L.map('knock-map-worker',{zoomControl:true}).setView([38.6763,-121.1760],17);
+    // Satellite imagery — matches owner CRM map
+    var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:19,attribution:'&copy; Esri'});
+    var lbl=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:19,opacity:0.9});
+    sat.addTo(_wKnockMap);lbl.addTo(_wKnockMap);
+  }
+  _wKnockMarkers.forEach(function(m){_wKnockMap.removeLayer(m);});_wKnockMarkers=[];
+  Object.keys(WDB.knockData).forEach(function(date){
+    var dk=WDB.knockData[date];if(!dk.pins)return;
+    dk.pins.forEach(function(pin){addWorkerKnockPin(pin.lat,pin.lng,pin.result,pin.address||'',date,false);});
+  });
+  startWorkerGPS();
+}
+
+function showTerritoryOnMap(){
+  var terrs=getMyTerritories();
+  if(!terrs.length||!_wKnockMap)return;
+  var areas=terrs.map(function(t){return t.area;}).join(', ');
+  // Show territory badge on map
+  var badge=document.getElementById('worker-territory-badge');
+  if(!badge){
+    badge=document.createElement('div');
+    badge.id='worker-territory-badge';
+    badge.style.cssText='position:absolute;top:10px;left:10px;z-index:1000;background:rgba(77,166,255,.9);color:#000;font-size:11px;font-weight:700;padding:5px 10px;border-radius:4px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    var mapEl=document.getElementById('knock-map-worker');
+    if(mapEl)mapEl.appendChild(badge);
+  }
+  badge.textContent='Zone: '+areas;
+}
+function startWorkerGPS(){
+  if(!navigator.geolocation||!_wKnockMap)return;
+  navigator.geolocation.watchPosition(function(pos){
+    var lat=pos.coords.latitude,lng=pos.coords.longitude;
+    if(_wKnockUserMarker){_wKnockMap.removeLayer(_wKnockUserMarker);}
+    var icon=L.divIcon({className:'',html:'<div style="width:32px;height:32px;border-radius:50%;border:4px solid #ff6b35;background:rgba(255,107,53,.15);box-shadow:0 0 0 3px rgba(255,107,53,.3),0 2px 10px rgba(0,0,0,.5);animation:pulse 1s infinite"></div>',iconSize:[32,32],iconAnchor:[16,16]});
+    _wKnockUserMarker=L.marker([lat,lng],{icon:icon,zIndexOffset:1000}).addTo(_wKnockMap);
+    if(!window._wGotFix){window._wGotFix=true;_wKnockMap.setView([lat,lng],18);loadWorkerHouses(lat,lng);}
+  },null,{enableHighAccuracy:true,maximumAge:5000});
+}
+
+function loadWorkerHouses(lat,lng){
+  if(!_wKnockMap)return;
+  _wKnockHouseCircles.forEach(function(c){_wKnockMap.removeLayer(c);});_wKnockHouseCircles=[];
+  var bbox=(lat-0.0015)+','+(lng-0.002)+','+(lat+0.0015)+','+(lng+0.002);
+  var q='[out:json][timeout:10];(node["addr:housenumber"]('+bbox+');way["building"="house"]('+bbox+'););out center 60;';
+  fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(data){
+    if(!data||!data.elements)return;
+    data.elements.forEach(function(el){
+      var hlat=el.lat||(el.center&&el.center.lat),hlng=el.lon||(el.center&&el.center.lon);
+      if(!hlat||!hlng)return;
+      var dist=Math.sqrt(Math.pow(hlat-lat,2)+Math.pow(hlng-lng,2))*111320;
+      if(dist>160)return;
+      var knocked=false,kResult=null;
+      Object.values(WDB.knockData).forEach(function(dk){if(!dk.pins)return;dk.pins.forEach(function(p){if(Math.sqrt(Math.pow(p.lat-hlat,2)+Math.pow(p.lng-hlng,2))*111320<15){knocked=true;kResult=p.result;}});});
+      var color=knocked?(kResult==='yes'?'#4ade80':kResult==='no'?'#f87171':kResult==='na'?'#facc15':'#a78bfa'):'rgba(120,200,255,.7)';
+      var c=L.circle([hlat,hlng],{radius:8,color:color,fillColor:color,fillOpacity:.15,weight:2}).addTo(_wKnockMap);
+      var addr=(el.tags&&el.tags['addr:housenumber']?el.tags['addr:housenumber']+' ':'')+( el.tags&&el.tags['addr:street']||'');
+      c._houseData={lat:hlat,lng:hlng,addr:addr};
+      c.on('click',function(){selectWorkerHouse(this._houseData);});
+      _wKnockHouseCircles.push(c);
+    });
+  }).catch(function(){_wKnockMap.on('click',function(e){selectWorkerHouse({lat:e.latlng.lat,lng:e.latlng.lng,addr:''});});});
+}
+
+function selectWorkerHouse(hd){
+  _wKnockPendingLat=hd.lat;_wKnockPendingLng=hd.lng;
+  g('knock-panel').style.display='';
+  var el=g('knock-selected-addr-w');
+  if(hd.addr){el.textContent=hd.addr;}
+  else{el.textContent='Getting address...';fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+hd.lat+'&lon='+hd.lng,{headers:{'Accept-Language':'en-US'}}).then(function(r){return r.json();}).then(function(d){if(d&&d.address)el.textContent=(d.address.house_number?d.address.house_number+' ':'')+( d.address.road||'');}).catch(function(){el.textContent='Unknown address';});}
+}
+
+async function logKnock(result){
+  if(_wKnockPendingLat===null)return;
+  var lat=_wKnockPendingLat,lng=_wKnockPendingLng;
+  var addr=g('knock-selected-addr-w').textContent;
+  _wKnockPendingLat=null;_wKnockPendingLng=null;
+  g('knock-panel').style.display='none';
+  var td=todayStr();
+  if(!WDB.knockData[td])WDB.knockData[td]={yes:0,no:0,na:0,crashout:0,pins:[],log:[]};
+  if(!WDB.knockData[td].pins)WDB.knockData[td].pins=[];
+  WDB.knockData[td].pins.push({lat:lat,lng:lng,result:result,address:addr});
+  WDB.knockData[td][result]=(WDB.knockData[td][result]||0)+1;
+  WDB.knockData[td].log.push({result:result,worker:WORKER.name,time:new Date().toISOString(),address:addr});
+  addWorkerKnockPin(lat,lng,result,addr,td,false);
+  // Save back to shared CRM
+  showLoading();
+  try{await saveToSharedDB();addNotification('Knock logged: '+result);}catch(e){_warn("[NL]",e&&e.message||e);}
+  hideLoading();
+  renderKnockLog();
+  if(WORKER.role==='knocker')renderKnockerHome();
+}
+
+function cancelKnockW(){_wKnockPendingLat=null;_wKnockPendingLng=null;g('knock-panel').style.display='none';}
+
+function addWorkerKnockPin(lat,lng,result,addr,date,save){
+  if(!_wKnockMap)return;
+  var color=result==='yes'?'#4da6ff':'#555';
+  var sz2=result==='yes'?34:28;
+  var icon=L.divIcon({className:'',html:'<div style="width:'+sz2+'px;height:'+sz2+'px;border-radius:50%;border:4px solid '+color+';background:'+( result==='yes'?'rgba(74,222,128,.2)':result==='no'?'rgba(248,113,113,.2)':'rgba(250,204,21,.2)')+';box-shadow:0 0 0 2px rgba(0,0,0,.4)"></div>',iconSize:[sz2,sz2],iconAnchor:[sz2/2,sz2/2]});
+  var m=L.marker([lat,lng],{icon:icon}).addTo(_wKnockMap);
+  m.bindPopup('<strong>'+result+'</strong>'+(addr?'<br>'+addr:'')+'<br><small>'+date+'</small>');
+  _wKnockMarkers.push(m);
+}
+
+function renderKnockLog(){
+  var td=todayStr();var dk=WDB.knockData[td]||{};var log=(dk.log||[]).slice().reverse().slice(0,10);
+  var doors=(dk.yes||0)+(dk.no||0)+(dk.na||0)+(dk.crashout||0);
+  g('knock-log-worker').innerHTML=doors?'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'+
+    ['yes','no','na','crashout'].map(function(r){return'<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:'+(r==='yes'?'var(--accent)':'var(--text)')+'">'+( dk[r]||0)+'</div><div style="font-size:9px;color:var(--text3);text-transform:uppercase">'+r+'</div></div>';}).join('')+'</div>'+
+    log.map(function(l){return'<div class="row"><div style="font-size:12px">'+esc(l.address||'—')+'</div><span class="tag tag-'+(l.result==='yes'?'blue':'gray')+'">'+l.result+'</span></div>';}).join('')
+  :'<div class="empty" style="padding:20px;font-size:12px">No knocks logged today. Tap a house on the map.</div>';
+}
+
+/* ═══════════════════════════════════════════════════
+   LEAD CAPTURE
+═══════════════════════════════════════════════════ */
+function showLeadModal(){openModal('lead-modal');}
+async function saveLead(){
+  var name=g('lead-name').value.trim();if(!name){alert('Enter client name.');return;}
+  var lead={id:genId(),name:name,address:g('lead-addr').value,phone:g('lead-phone').value,service:'Window Cleaning',stage:g('lead-stage').value,quote:parseFloat(g('lead-value').value)||0,source:'door',notes:g('lead-notes').value,updated:todayStr(),knocker:WORKER.name};
+  WDB.pipeline.push(lead);
+  showLoading();
+  try{
+    await saveToSharedDB();
+    addNotification('Lead saved: '+name);
+    closeModal('lead-modal');
+    ['lead-name','lead-addr','lead-phone','lead-value','lead-notes'].forEach(function(id){g(id).value='';});
+  }catch(e){_warn("[NL]",e&&e.message||e);}
+  hideLoading();
+}
+
+/* ═══════════════════════════════════════════════════
+   LEADERBOARD
+═══════════════════════════════════════════════════ */
+function lbFilter(period,btn){
+  _lbPeriod=period;
+  document.querySelectorAll('#page-leaderboard .btn').forEach(function(b){b.className='btn btn-sm btn-ghost';b.style.flex='1';});
+  btn.style.background='var(--accent)';btn.style.color='#000';btn.style.borderColor='var(--accent)';
+  renderLeaderboard();
+}
+
+function renderLeaderboard(){
+  var td=todayStr(),sW=daysAgo(6),sM=startOfMonth();
+  var from=_lbPeriod==='day'?td:_lbPeriod==='week'?sW:sM;
+  function mkRow(name,val,i){
+    var rankCls=i===0?'lb-rank-1':'lb-rank-n';
+    var nameHtml=name===WORKER.name?('<strong>'+esc(name)+'</strong>'):esc(name);
+    return '<div class="lb-row"><div class="lb-rank '+rankCls+'">'+(i+1)+'</div>'+
+      '<div class="lb-name">'+nameHtml+'</div><div class="lb-val">'+val+'</div></div>';
+  }
+  // Revenue leaderboard
+  var repRev={};
+  WDB.jobs.filter(function(j){return j.date>=from&&j.price>0;}).forEach(function(j){
+    var rep=j.salesRep||'Owner';repRev[rep]=(repRev[rep]||0)+Number(j.price);
+  });
+  var revRanked=Object.keys(repRev).sort(function(a,b){return repRev[b]-repRev[a];});
+  g('lb-revenue').innerHTML=revRanked.length?revRanked.map(function(n,i){return mkRow(n,money(repRev[n]),i);}).join(''):'<div class="empty" style="padding:16px">No revenue data.</div>';
+  // Doors leaderboard
+  var doorRanked={};
+  Object.keys(WDB.knockData).filter(function(d){return d>=from;}).forEach(function(d){
+    var dk=WDB.knockData[d];
+    if(dk.log)dk.log.forEach(function(l){if(l.worker){doorRanked[l.worker]=(doorRanked[l.worker]||0)+1;}});
+  });
+  var doorNames=Object.keys(doorRanked).sort(function(a,b){return doorRanked[b]-doorRanked[a];});
+  g('lb-doors').innerHTML=doorNames.length?doorNames.map(function(n,i){return mkRow(n,doorRanked[n]+' doors',i);}).join(''):'<div class="empty" style="padding:16px">No knock data.</div>';
+}
+
+/* MESSAGES */
+function renderMessages(){
+  g('announcements-list').innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">No announcements.</div>';
+  g('chat-messages').innerHTML=WDB.messages.length?WDB.messages.map(function(m){
+    var isMine=m.sender===WORKER.name||m.sender_email===WORKER.email;
+    return'<div class="msg-bubble '+(isMine?'msg-mine':'msg-other')+'">'+
+      '<div class="msg-body">'+esc(m.body||m.message||'')+'</div>'+
+      '<div class="msg-meta">'+(isMine?'':esc(m.sender||'')+' &bull; ')+esc((m.created_at||'').slice(11,16))+'</div>'+
+    '</div>';
+  }).join(''):'<div class="empty" style="padding:20px;font-size:12px">No messages yet. Start the conversation.</div>';
+}
+
+async function sendMessage(){
+  var inp=g('chat-input');if(!inp)return;
+  var body=inp.value.trim();if(!body)return;
+  var msg={id:genId(),sender:WORKER.name,sender_email:WORKER.email,body:body,role:WORKER.role,created_at:new Date().toISOString()};
+  try{await sbUpsert('worker_messages',msg);inp.value='';await loadData();}catch(e){alert('Could not send.');}
+}
+
+/* NOTIFICATIONS */
+function addNotification(msg){
+  _notifications.unshift({msg:msg,ts:new Date().toISOString()});
+  var dot=g('notif-dot');if(dot)dot.style.display='';
+}
+function showNotifs(){
+  g('notif-list').innerHTML=_notifications.length?_notifications.map(function(n){
+    return'<div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)">'+esc(n.msg)+'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+n.ts.slice(11,16)+'</div></div>';
+  }).join(''):'<div class="empty" style="padding:20px">No notifications.</div>';
+  var dot=g('notif-dot');if(dot)dot.style.display='none';
+  openModal('notif-modal');
+}
+
+
+/* ══════════════════════════════════════════════════════
+   OWNER DASHBOARD — Employee management + claim approval
+══════════════════════════════════════════════════════ */
+function buildOwnerSection(){
+  return '<div style="margin-top:4px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+      '<div class="sec-label" style="margin:0">Owner Dashboard</div>'+
+      '<button class="btn btn-primary btn-sm" onclick="showAddWorkerModal()">+ Add Worker</button>'+
+    '</div>'+
+    '<div id="owner-claims-section"></div>'+
+    '<div id="owner-workers-section" style="margin-top:4px"></div>'+
+  '</div>';
+}
+function renderOwnerDashboard(){
+  renderOwnerBids();
+  renderOwnerClaims();
+  renderOwnerWorkers();
+}
+function renderOwnerClaims(){
+  var el=g('owner-claims-section');if(!el)return;
+  var pending=WDB.jobClaims.filter(function(c){return c.status==='pending';});
+  if(!pending.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0;margin-bottom:8px">No pending job requests.</div>';return;}
+  el.innerHTML='<div class="sec-label" style="color:var(--accent)">Pending Requests ('+pending.length+')</div>'+
+    pending.map(function(c){
+      return '<div class="card" style="border-left:3px solid var(--accent);padding:12px;margin-bottom:8px">'+
+        '<div style="font-weight:600;font-size:13px;margin-bottom:3px">'+esc(c.worker_name)+' wants:</div>'+
+        '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">'+esc(c.job_client)+' &bull; '+c.job_date+' &bull; '+money(c.job_price)+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          '<button class="btn btn-primary btn-sm" data-cid="'+c.id+'" data-jid="'+c.job_id+'" data-wn="'+esc(c.worker_name||'')+'" data-we="'+esc(c.worker_email||'')+'" onclick="approveJobClaim(this.dataset.cid,this.dataset.jid,this.dataset.wn,this.dataset.we)">Approve</button>'+
+          '<button class="btn btn-ghost btn-sm" onclick="denyJobClaim('+c.id+')">Deny</button>'+
+        '</div></div>';
+    }).join('');
+}
+function renderOwnerWorkers(){
+  var el=g('owner-workers-section');if(!el)return;
+  var workers=WDB.workerProfiles.filter(function(w){return w.role&&w.role!=='owner';});
+  el.innerHTML='<div class="sec-label">Workers ('+workers.length+')</div>'+
+    (workers.length?workers.map(function(w){
+      var myJobs=WDB.jobs.filter(function(j){return j.cleanerEmail===w.email||(j.cleaner&&j.cleaner.toLowerCase()===(w.name||'').toLowerCase());});
+      var earned=WDB.empLogs.filter(function(l){return l.empName&&l.empName.toLowerCase()===(w.name||'').toLowerCase();}).reduce(function(s,l){return s+l.pay;},0);
+      return '<div class="card" style="padding:12px;margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+          '<div><div style="font-weight:600;font-size:13px">'+esc(w.name)+'</div>'+
+            '<div style="font-size:11px;color:var(--text3)">'+esc(w.role||'—')+' &bull; '+esc(w.email)+'</div>'+
+            '<div style="font-size:11px;color:var(--text2);margin-top:2px">'+myJobs.length+' jobs &bull; '+money(earned)+' earned</div></div>'+
+          '<span class="tag tag-blue">'+esc(w.role||'—')+'</span>'+
+        '</div></div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text3);padding:6px 0">No workers yet. Add one above.</div>');
+}
+async function approveJobClaim(claimId,jobId,workerName,workerEmail){
+  showLoading();
+  try{
+    var j=WDB.jobs.find(function(x){return x.id==jobId;});
+    if(j){j.cleaner=workerName;j.cleanerEmail=workerEmail;j.openShift=false;}
+    // Save updated jobs back to CRM Supabase
+    var rows=await sbFetch('crm_data',{select:'jobs',eq:{id:'main'}});
+    if(rows&&rows[0]){await sbPatch('crm_data',{jobs:WDB.jobs},{id:'main'});}
+    await sbPatch('job_claims',{status:'approved'},{id:claimId});
+    WDB.jobClaims=WDB.jobClaims.map(function(c){return c.id==claimId?Object.assign({},c,{status:'approved'}):c;});
+    // Message to worker so they see it on their app
+    var approveMsg='APPROVED: You are assigned to '+(j?j.client:'the job')+' on '+(j?j.date:'')+
+      (j&&j.time?' at '+fmtTime(j.time):'')+
+      (j&&j.address?' — '+j.address:'')+
+      '. Pay: '+money((j&&j.cleanerPay)||0)+
+      '. Check your schedule and home screen.';
+    await sbUpsert('worker_messages',{id:genId(),sender:'Caleb (Owner)',sender_email:'my.nextlocal@gmail.com',body:approveMsg,role:'system',type:'claim_approved',job_id:jobId,created_at:new Date().toISOString()});
+    addNotification('Approved! '+workerName+' assigned to '+( j?j.client:'job')+'.');
+    renderOwnerDashboard();
+    renderOwnerHome();
+  }catch(e){_warn(e);alert('Error approving claim.');}
+  hideLoading();
+}
+async function denyJobClaim(claimId){
+  showLoading();
+  try{
+    await sbPatch('job_claims',{status:'denied'},{id:claimId});
+    WDB.jobClaims=WDB.jobClaims.map(function(c){return c.id==claimId?Object.assign({},c,{status:'denied'}):c;});
+    renderOwnerDashboard();
+  }catch(e){_warn("[NL]",e&&e.message||e);}
+  hideLoading();
+}
+function showAddWorkerModal(){openModal('add-worker-modal');}
+async function createWorker(){
+  var name=g('aw-name').value.trim(),email=g('aw-email').value.trim().toLowerCase(),role=g('aw-role').value;
+  if(!name||!email){alert('Name and email required.');return;}
+  var pw=name.split(' ')[0]+(Math.floor(Math.random()*900)+100);
+  var profile={id:genId(),name:name,email:email,role:role,created_at:new Date().toISOString()};
+  showLoading();
+  try{
+    await sbUpsert('worker_profiles',profile);
+    WDB.workerProfiles.push(profile);
+    var res=g('aw-result');
+    if(res){res.style.display='';res.innerHTML='<strong>Worker added!</strong><br>Name: '+esc(name)+'<br>Email: '+esc(email)+'<br>Suggested temp password: <strong>'+pw+'</strong><br><span style="font-size:11px;color:var(--text3)">Have them sign in with this email and their full name.</span>';}
+    renderOwnerWorkers();g('aw-name').value='';g('aw-email').value='';
+  }catch(e){alert('Error creating worker.');}
+  hideLoading();
+}
+// job status helpers moved to renderSchedule
+async function promptClaimJob(jobId){
+  var j=WDB.jobs.find(function(x){return x.id==jobId;});if(!j)return;
+  // Check not already pending
+  if(jobIsPending(j)){alert('You already requested this job. Waiting for approval.');return;}
+  if(jobIsMine(j)){alert('This job is already assigned to you.');return;}
+  var msg='Request this job?\n\n'+j.client+'\n'+(j.date||'')+(j.time?' at '+fmtTime(j.time):'')+'\n'+money(j.price)+(j.address?'\n'+j.address:'');
+  if(!confirm(msg))return;
+  var claim={id:genId(),job_id:j.id,job_client:j.client,job_date:j.date,job_price:j.price,worker_email:WORKER.email,worker_name:WORKER.name,status:'pending',created_at:new Date().toISOString()};
+  showLoading();
+  try{
+    await sbUpsert('job_claims',claim);
+    WDB.jobClaims.push(claim);
+    // Notify owner — shows on owner dashboard
+    await sbUpsert('worker_messages',{id:genId()+1,sender:WORKER.name,sender_email:WORKER.email,body:'JOB REQUEST: '+WORKER.name+' wants to claim '+j.client+' on '+j.date+(j.time?' at '+fmtTime(j.time):'')+' ('+money(j.price)+'). Open the Owner tab to approve or deny.',role:'system',type:'claim_request',job_id:j.id,created_at:new Date().toISOString()});
+    addNotification('Request sent to Caleb! You will see the job on your calendar once approved.');
+    renderSchedule();
+    // Also refresh home page stats
+    if(WORKER.role!=='owner')renderHome();
+  }catch(e){_warn(e);alert('Could not send request. Check connection.');}
+  hideLoading();
+}
+// schedDayClick moved to renderSchedule block
+
+
+/* ── DEVIN'S WORKER ACCOUNT (pre-seeded) ── */
+async function seedDevinProfile(){
+  if(localStorage.getItem('nl_devin_seeded'))return;
+  var profile={id:1748990000001,name:'Devin',email:'devin@nextlocal.com',role:'cleaner',created_at:new Date().toISOString()};
+  try{
+    await sbUpsert('worker_profiles',profile);
+    localStorage.setItem('nl_devin_seeded','1');
+  }catch(e){_warn('Devin seed error:',e);}
+}
+
+
+/* ══════════════════════════════════════════════════════
+   JOB BIDDING SYSTEM
+══════════════════════════════════════════════════════ */
+var _bidJobId=null;
+var _bidType=null;
+var _bidJobPrice=0;
+
+function openBidModal(jobId){
+  var j=WDB.jobs.find(function(x){return x.id==jobId;});
+  if(!j)return;
+  // Check if already bid
+  var myBid=WDB.jobBids.find(function(b){return b.job_id==jobId&&b.worker_email===WORKER.email&&b.status==='pending';});
+  if(myBid){alert('You already have a pending bid on this job. Wait for the owner to review it.');return;}
+  if(jobIsMine&&jobIsMine(j)){alert('This job is already assigned to you.');return;}
+  _bidJobId=jobId;
+  _bidJobPrice=Number(j.price)||0;
+  _bidType=null;loadPrefs();
+  // Pre-fill preferred rate from settings
+  loadPrefs();
+  if(PREFS.hourlyRate){var hr2=g('bid-hourly-rate');if(hr2)hr2.value=PREFS.hourlyRate;}
+  if(PREFS.commPct){var cp2=g('bid-commission-pct');if(cp2)cp2.value=PREFS.commPct;}
+  // Reset fields
+  ['bid-hourly-hours','bid-flat-amount','bid-note'].forEach(function(id){var el=g(id);if(el)el.value='';});
+  ['bid-hourly-fields','bid-commission-fields','bid-flat-fields'].forEach(function(id){var el=g(id);if(el)el.style.display='none';});
+  var prev=g('bid-preview');if(prev)prev.style.display='none';
+  // Deselect type buttons
+  document.querySelectorAll('.bid-type-btn').forEach(function(b){b.style.background='';b.style.color='';b.style.borderColor='';b.className='bid-type-btn btn btn-ghost btn-sm';});
+  // Fill summary
+  var sum=g('bid-job-summary');
+  if(sum){sum.innerHTML='<strong>'+esc(j.client)+'</strong> &bull; '+j.date+(j.time?' at '+fmtTime(j.time):'')+
+    (j.address?'<br>'+esc(j.address):'')+
+    (j.notes?'<br><em>'+esc(j.notes)+'</em>':'')+
+    '<br><strong>Job value: '+money(j.price)+'</strong>';}
+  // Auto-select preferred pay type from settings
+  if(PREFS.payType)setTimeout(function(){
+    var btn=g('bid-type-'+PREFS.payType);if(btn)selectBidType(PREFS.payType);
+  },50);
+  openModal('bid-modal');
+}
+
+function selectBidType(type){
+  _bidType=type;
+  // Update button styles
+  document.querySelectorAll('.bid-type-btn').forEach(function(b){
+    b.style.background='';b.style.color='';b.style.borderColor='';
+    b.className='bid-type-btn btn btn-ghost btn-sm';
+  });
+  var active=g('bid-type-'+type);
+  if(active){active.style.background='var(--accent)';active.style.color='#000';active.style.borderColor='var(--accent)';}
+  // Show/hide fields
+  g('bid-hourly-fields').style.display=type==='hourly'?'':'none';
+  g('bid-commission-fields').style.display=type==='commission'?'':'none';
+  g('bid-flat-fields').style.display=type==='flat'?'':'none';
+  recalcBid();
+}
+
+function recalcBid(){
+  var prev=g('bid-preview');if(!prev||!_bidType)return;
+  var pay=0,desc='';
+  if(_bidType==='hourly'){
+    var rate=parseFloat(g('bid-hourly-rate').value)||0;
+    var hrs=parseFloat(g('bid-hourly-hours').value)||0;
+    pay=rate*hrs;
+    desc=rate>0&&hrs>0?money(rate)+'/hr &times; '+hrs+'h':'Enter rate and hours';
+  } else if(_bidType==='commission'){
+    var pct=parseFloat(g('bid-commission-pct').value)||0;
+    pay=_bidJobPrice*pct/100;
+    desc=pct>0?pct+'% of '+money(_bidJobPrice):'Enter commission %';
+  } else if(_bidType==='flat'){
+    pay=parseFloat(g('bid-flat-amount').value)||0;
+    desc=pay>0?'Flat rate':'Enter your rate';
+  }
+  prev.style.display=pay>0?'':'none';
+  var pp=g('bid-preview-pay');if(pp)pp.textContent=money(pay);
+  var pd=g('bid-preview-desc');if(pd)pd.innerHTML=desc;
+  var pj=g('bid-preview-jobprice');if(pj)pj.textContent=money(_bidJobPrice);
+}
+
+async function submitBid(){
+  if(!_bidType){alert('Select how you want to be paid.');return;}
+  if(!WORKER.email||!WORKER.name){alert('Sign in required to submit a bid.');return;}
+  if(_bidJobId===null){alert('No job selected.');return;}
+  var pay=0,typeDetail={};
+  if(_bidType==='hourly'){
+    var rate=parseFloat(g('bid-hourly-rate').value)||0;
+    var hrs=parseFloat(g('bid-hourly-hours').value)||0;
+    if(!rate||!hrs){alert('Enter your hourly rate and estimated hours.');return;}
+    pay=rate*hrs;typeDetail={rate:rate,hours:hrs};
+  } else if(_bidType==='commission'){
+    var pct=parseFloat(g('bid-commission-pct').value)||0;
+    if(!pct){alert('Enter your commission percentage.');return;}
+    pay=_bidJobPrice*pct/100;typeDetail={pct:pct};
+  } else if(_bidType==='flat'){
+    pay=parseFloat(g('bid-flat-amount').value)||0;
+    if(!pay){alert('Enter your flat rate.');return;}
+    typeDetail={amount:pay};
+  }
+  var note=g('bid-note').value.trim();
+  var j=WDB.jobs.find(function(x){return x.id==_bidJobId;});
+  var bid={
+    id:genId(),
+    job_id:_bidJobId,
+    job_client:j?j.client:'',
+    job_date:j?j.date:'',
+    job_price:_bidJobPrice,
+    worker_email:WORKER.email,
+    worker_name:WORKER.name,
+    pay_type:_bidType,
+    pay_amount:pay,
+    pay_detail:JSON.stringify(typeDetail),
+    note:note,
+    status:'pending',
+    created_at:new Date().toISOString()
+  };
+  showLoading();
+  try{
+    await sbUpsert('job_bids',bid);
+    WDB.jobBids.push(bid);
+    // Notify owner
+    var typeStr=_bidType==='hourly'?money(typeDetail.rate)+'/hr for '+typeDetail.hours+'h':_bidType==='commission'?typeDetail.pct+'% commission':'flat '+money(pay);
+    await sbUpsert('worker_messages',{id:genId()+1,sender:WORKER.name,sender_email:WORKER.email,body:'BID: '+WORKER.name+' bid '+money(pay)+' ('+typeStr+') on '+( j?j.client:'a job')+' on '+(j?j.date:'')+(note?' — "'+note+'"':''),role:'system',type:'bid_request',job_id:_bidJobId,bid_id:bid.id,created_at:new Date().toISOString()});
+    addNotification('Bid sent! Caleb will review it.');
+    closeModal('bid-modal');
+    renderSchedule();
+    renderHome();
+  }catch(e){_warn(e);alert('Could not submit bid. Check your connection.');}
+  hideLoading();
+}
+
+/* ── OWNER: render bids on home dashboard ── */
+function renderOwnerBids(){
+  var el=g('ow-bids-section');if(!el)return;
+  var pending=WDB.jobBids.filter(function(b){return b.status==='pending';});
+  if(!pending.length){el.innerHTML='';return;}
+  el.innerHTML='<div class="sec-label" style="color:var(--accent)">Job Bids ('+pending.length+')</div>'+
+    pending.map(function(b){
+      var typeLabel=b.pay_type==='hourly'?'Hourly':b.pay_type==='commission'?'Commission':'Flat Rate';
+      var detail='';
+      try{var d=JSON.parse(b.pay_detail||'{}');detail=b.pay_type==='hourly'?money(d.rate)+'/hr &times; '+d.hours+'h':b.pay_type==='commission'?d.pct+'%':'Flat';}catch(e){_warn("[NL]",e&&e.message||e);}
+      return '<div class="card" style="border-left:3px solid var(--accent);padding:12px;margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+          '<div>'+
+            '<div style="font-weight:700;font-size:13px">'+esc(b.worker_name)+'</div>'+
+            '<div style="font-size:11px;color:var(--text3)">'+esc(b.job_client)+' &bull; '+( b.job_date||'')+'</div>'+
+            '<div style="font-size:11px;color:var(--text2);margin-top:2px">'+typeLabel+': '+detail+'</div>'+
+            (b.note?'<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic">"'+esc(b.note)+'"</div>':'')+
+          '</div>'+
+          '<div style="text-align:right;flex-shrink:0;margin-left:10px">'+
+            '<div style="font-size:20px;font-weight:700;color:var(--accent)">'+money(b.pay_amount)+'</div>'+
+            '<div style="font-size:10px;color:var(--text3)">their pay</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          '<button class="btn btn-primary btn-sm" data-bid="'+b.id+'" data-jid="'+b.job_id+'" data-wn="'+esc(b.worker_name)+'" data-we="'+esc(b.worker_email)+'" data-pay="'+b.pay_amount+'" onclick="approveBid(this.dataset)">Approve Bid</button>'+
+          '<button class="btn btn-ghost btn-sm" data-bid="'+b.id+'" onclick="denyBid(this.dataset.bid)">Decline</button>'+
+        '</div></div>';
+    }).join('');
+}
+
+async function approveBid(ds){
+  var bidId=ds.bid,jobId=ds.jid,workerName=ds.wn,workerEmail=ds.we,pay=ds.pay;
+  showLoading();
+  try{
+    // Assign job
+    var j=WDB.jobs.find(function(x){return x.id==jobId;});
+    if(j){j.cleaner=workerName;j.cleanerEmail=workerEmail;j.cleanerPay=Number(pay);j.openShift=false;}
+    // Deny all other bids on this job
+    WDB.jobBids.forEach(function(b){if(b.job_id==jobId&&b.id!=bidId)b.status='denied';});
+    // Save jobs to CRM
+    var rows=await sbFetch('crm_data',{select:'jobs',eq:{id:'main'}});
+    if(rows&&rows[0])await sbPatch('crm_data',{jobs:WDB.jobs},{id:'main'});
+    // Update bid status
+    await sbPatch('job_bids',{status:'approved'},{id:bidId});
+    // Deny others on same job
+    var otherBids=WDB.jobBids.filter(function(b){return b.job_id==jobId&&b.id!=bidId&&b.status==='pending';});
+    for(var i=0;i<otherBids.length;i++){await sbPatch('job_bids',{status:'denied'},{id:otherBids[i].id}).catch(function(){});}
+    WDB.jobBids=WDB.jobBids.map(function(b){
+      if(b.id==bidId)return Object.assign({},b,{status:'approved'});
+      if(b.job_id==jobId)return Object.assign({},b,{status:'denied'});
+      return b;
+    });
+    // Also deny any pending job_claims on this job
+    var pendingClaims=WDB.jobClaims.filter(function(c){return c.job_id==jobId&&c.status==='pending';});
+    for(var ci=0;ci<pendingClaims.length;ci++){await sbPatch('job_claims',{status:'denied'},{id:pendingClaims[ci].id}).catch(function(){});}
+    // Notify winner
+    await sbUpsert('worker_messages',{id:genId(),sender:'Caleb (Owner)',sender_email:'my.nextlocal@gmail.com',body:'BID APPROVED: Your bid for '+(j?j.client:'the job')+' on '+(j?j.date:'')+' was accepted! Pay: '+money(pay)+'. Check your schedule.',role:'system',type:'bid_approved',job_id:jobId,created_at:new Date().toISOString()});
+    addNotification('Bid approved! '+workerName+' assigned with '+money(pay)+' pay.');
+    renderOwnerDashboard();
+    renderOwnerHome();
+  }catch(e){_warn(e);alert('Error approving bid.');}
+  hideLoading();
+}
+
+async function denyBid(bidId){
+  showLoading();
+  try{
+    await sbPatch('job_bids',{status:'denied'},{id:bidId});
+    WDB.jobBids=WDB.jobBids.map(function(b){return b.id==bidId?Object.assign({},b,{status:'denied'}):b;});
+    renderOwnerBids();
+  }catch(e){_warn(e);}
+  hideLoading();
+}
+
+
+/* ══════════════════════════════════════════════════════
+   WORKER SETTINGS
+══════════════════════════════════════════════════════ */
+var PREFS={payType:'hourly',hourlyRate:18,commPct:30,available:true,availDays:[1,2,3,4,5],phone:'',emergency:''};
+
+function loadPrefs(){
+  try{var p=JSON.parse(localStorage.getItem('nl_worker_prefs')||'{}');Object.assign(PREFS,p);}catch(e){_warn("[NL]",e&&e.message||e);}
+}
+function savePrefs(){localStorage.setItem('nl_worker_prefs',JSON.stringify(PREFS));}
+function savePref(key,val){PREFS[key]=val;savePrefs();}
+
+
+function calcWorkerScoreForWorker(name){
+  if(!name)return null;
+  var sM=startOfMonth(),sW=daysAgo(6);
+  var logs=WDB.empLogs.filter(function(l){return l.empName&&l.empName.toLowerCase()===name.toLowerCase();});
+  var myJobs=WDB.jobs.filter(function(j){return (j.cleanerEmail&&j.cleanerEmail===WORKER.email)||(j.cleaner&&j.cleaner.toLowerCase()===name.toLowerCase());});
+  var doneJobs=myJobs.filter(function(j){return j.status==='done';});
+  var monthJobs=myJobs.filter(function(j){return j.date>=sM;});
+  var totalPay=logs.reduce(function(s,l){return s+(l.pay||0);},0);
+  var totalRev=myJobs.reduce(function(s,j){return s+Number(j.price||0);},0);
+  var avgJobVal=myJobs.length?Math.round(totalRev/myJobs.length):0;
+  var score=Math.min(100,Math.round((doneJobs.length>0?20:0)+(monthJobs.length>=4?20:monthJobs.length*5)+(avgJobVal>=200?20:avgJobVal>=100?10:0)+(totalRev>=1000?20:Math.round(totalRev/50))));
+  return{score:score,doneJobs:doneJobs.length,monthJobs:monthJobs.length,totalPay:totalPay,totalRev:totalRev,avgJobVal:avgJobVal};
+}
+
+function renderSettings(){
+  loadPrefs();
+  // Profile
+  var nameEl=g('set-name-display'),roleEl=g('set-role-display'),emailEl=g('set-email-display'),av=g('set-avatar');
+  if(nameEl)nameEl.textContent=WORKER.name||'Worker';
+  if(roleEl)roleEl.textContent=WORKER.role==='owner'?'Owner / Admin':WORKER.role==='cleaner'?'Window Cleaner':'Door Knocker';
+  if(emailEl)emailEl.textContent=WORKER.email||'';
+  if(av)av.textContent=(WORKER.name||'W').charAt(0).toUpperCase();
+  // Prefill edit form
+  var ni=g('set-name-input'),pi=g('set-phone-input'),ei=g('set-email-input'),emi=g('set-emergency-input');
+  if(ni)ni.value=WORKER.name||'';
+  if(pi)pi.value=PREFS.phone||'';
+  if(ei)ei.value=WORKER.email||'';
+  if(emi)emi.value=PREFS.emergency||'';
+  // Prefs
+  var spp=g('set-pay-pref');if(spp)spp.value=PREFS.payType||'hourly';
+  var shr=g('set-hourly-rate');if(shr)shr.value=PREFS.hourlyRate||18;
+  var scp=g('set-comm-pct');if(scp)scp.value=PREFS.commPct||30;
+  var sa=g('set-available');if(sa)sa.checked=PREFS.available!==false;
+  // Availability days
+  var dad=g('set-avail-days');
+  if(dad){
+    var DNAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    dad.innerHTML=DNAMES.map(function(d,i){
+      var on=(PREFS.availDays||[1,2,3,4,5]).indexOf(i)!==-1;
+      return '<div onclick="toggleAvailDay('+i+',this)" style="padding:6px 2px;text-align:center;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;background:'+(on?'var(--accent)':'var(--surface3)')+';color:'+(on?'#000':'var(--text3)')+'">'+d+'</div>';
+    }).join('');
+  }
+  // Stats summary
+  var ss=g('set-stats-summary');
+  if(ss){
+    var myName2=WORKER.name,sM2=startOfMonth(),sW2=daysAgo(6);
+    var myLogs2=WDB.empLogs.filter(function(l){return l.empName&&l.empName.toLowerCase()===myName2.toLowerCase();});
+    var allTime2=myLogs2.reduce(function(s,l){return s+l.pay;},0);
+    var monthPay2=myLogs2.filter(function(l){return l.date>=sM2;}).reduce(function(s,l){return s+l.pay;},0);
+    var totalHrs2=myLogs2.reduce(function(s,l){return s+(l.hours||0);},0);
+    var myJobs2=WDB.jobs.filter(function(j){return j.cleanerEmail===WORKER.email||(j.cleaner&&j.cleaner.toLowerCase()===myName2.toLowerCase());});
+    var doneJobs2=myJobs2.filter(function(j){return j.status==='done';}).length;
+    var avgPay2=doneJobs2>0?Math.round(allTime2/doneJobs2):0;
+    var wscore=calcWorkerScoreForWorker(myName2);
+    var scoreHtml='';
+    if(wscore){
+      var wgrade=wscore.score>=90?'A+':wscore.score>=80?'A':wscore.score>=70?'B+':wscore.score>=60?'B':'C';
+      var wgc=wscore.score>=80?'var(--accent)':wscore.score>=60?'#facc15':'#f87171';
+      scoreHtml='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+        '<div style="font-size:12px;font-weight:600;color:var(--text2)">Performance Grade</div>'+
+        '<div style="font-size:22px;font-weight:800;color:'+wgc+'">'+wgrade+
+          ' <span style="font-size:11px;color:var(--text3)">('+wscore.score+'/100)</span></div></div>'+
+        '<div style="height:4px;background:var(--surface3);border-radius:2px;margin-bottom:12px">'+
+          '<div style="height:100%;width:'+wscore.score+'%;background:'+wgc+';border-radius:2px;transition:width .6s"></div></div>';
+    }
+    ss.innerHTML=scoreHtml+
+      '<div class="row"><span class="row-label">All-time earnings</span><span class="row-val" style="color:var(--accent)">'+money(allTime2)+'</span></div>'+
+      '<div class="row"><span class="row-label">This month</span><span class="row-val">'+money(monthPay2)+'</span></div>'+
+      '<div class="row"><span class="row-label">Total hours</span><span class="row-val">'+totalHrs2.toFixed(1)+'h</span></div>'+
+      '<div class="row"><span class="row-label">Jobs completed</span><span class="row-val">'+doneJobs2+'</span></div>'+
+      '<div class="row" style="border:none"><span class="row-label">Avg pay / job</span><span class="row-val">'+money(avgPay2)+'</span></div>';
+  }
+  // Last sync
+  var ls=g('set-last-sync');if(ls)ls.textContent=new Date().toLocaleTimeString();
+}
+
+function toggleAvailDay(dayIdx,el){
+  var days=PREFS.availDays||[1,2,3,4,5];
+  var i=days.indexOf(dayIdx);
+  if(i===-1){days.push(dayIdx);el.style.background='var(--accent)';el.style.color='#000';}
+  else{days.splice(i,1);el.style.background='var(--surface3)';el.style.color='var(--text3)';}
+  PREFS.availDays=days;savePrefs();
+}
+
+function toggleEditProfile(){
+  var f=g('set-edit-form');if(f)f.style.display=f.style.display==='none'?'':'none';
+}
+
+async function saveProfile(){
+  var name=g('set-name-input').value.trim();
+  var phone=g('set-phone-input').value.trim();
+  var emergency=g('set-emergency-input').value.trim();
+  if(!name){alert('Name is required.');return;}
+  WORKER.name=name;PREFS.phone=phone;PREFS.emergency=emergency;
+  savePrefs();
+  // Update saved session
+  var raw=sessionStorage.getItem('nl_worker_v2')||localStorage.getItem('nl_worker_v2');
+  if(raw){try{var w=JSON.parse(raw);w.name=name;var str=JSON.stringify(w);if(localStorage.getItem('nl_worker_v2'))localStorage.setItem('nl_worker_v2',str);else sessionStorage.setItem('nl_worker_v2',str);}catch(e){_warn("[NL]",e&&e.message||e);}}
+  // Update Supabase profile
+  try{await sbUpsert('worker_profiles',{id:WORKER.id,name:name,email:WORKER.email,role:WORKER.role});}catch(e){_warn("[NL]",e&&e.message||e);}
+  g('top-name').textContent=name;
+  renderSettings();
+  toggleEditProfile();
+  addNotification('Profile updated.');
+}
+
+function clearLocalData(){
+  if(!confirm('This will sign you out and clear all local data. Continue?'))return;
+  localStorage.clear();sessionStorage.clear();location.reload();
+}
+
+/* ══════════════════════════════════════════════════════
+   WORKER HOME DASHBOARD — full analytics
+══════════════════════════════════════════════════════ */
+function renderCleanerHome(){
+  // Ensure cleaner-home is visible
+  var chEl2=g('cleaner-home');if(chEl2)chEl2.style.display='';
+  var khEl2=g('knocker-home');if(khEl2)khEl2.style.display='none';
+  loadPrefs();
+  var td=todayStr(),now=new Date(),sW=daysAgo(6),sM=startOfMonth();
+  var myName=WORKER.name,myEmail=WORKER.email;
+
+  // Greeting
+  var hr=now.getHours();
+  var greet=hr<12?'Good morning':(hr<17?'Good afternoon':'Good evening');
+  if(hr>=12&&hr<17)greet='Good afternoon';
+  else if(hr>=17)greet='Good evening';
+  var gEl=g('ch-greeting');if(gEl)gEl.textContent=greet+', '+myName.split(' ')[0]+'!';
+  var dEl=g('ch-date-line');
+  if(dEl){var DNAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];var MNAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];dEl.textContent=DNAMES[now.getDay()]+', '+MNAMES[now.getMonth()]+' '+now.getDate()+', '+now.getFullYear();}
+
+  // My logs & jobs
+  function isMyJob(j){return (j.cleanerEmail&&j.cleanerEmail===myEmail)||(j.cleaner&&j.cleaner!=='Owner'&&j.cleaner!=='Unassigned'&&j.cleaner.toLowerCase()===myName.toLowerCase());}
+  var myLogs=WDB.empLogs.filter(function(l){return l.empName&&l.empName.toLowerCase()===myName.toLowerCase();});
+  var payToday=myLogs.filter(function(l){return l.date===td;}).reduce(function(s,l){return s+l.pay;},0);
+  var jobsToday=myLogs.filter(function(l){return l.date===td;}).length;
+  var payWeek=myLogs.filter(function(l){return l.date>=sW;}).reduce(function(s,l){return s+l.pay;},0);
+  var weekJobs=myLogs.filter(function(l){return l.date>=sW;}).length;
+  var payMonth=myLogs.filter(function(l){return l.date>=sM;}).reduce(function(s,l){return s+l.pay;},0);
+  var monthJobs=myLogs.filter(function(l){return l.date>=sM;}).length;
+  var payAll=myLogs.reduce(function(s,l){return s+l.pay;},0);
+
+  // Upcoming assigned jobs (for today stat)
+  var myUpcoming=WDB.jobs.filter(function(j){return isMyJob(j)&&j.date===td&&j.status==='upcoming';});
+  var todayTotal=payToday+(myUpcoming.reduce(function(s,j){return s+Number(j.cleanerPay||0);},0));
+
+  // KPI cards
+  var cs=g('cs-pay-today');if(cs)cs.textContent=money(todayTotal);
+  var cssub=g('cs-jobs-today-sub');if(cssub)cssub.textContent=(jobsToday+myUpcoming.length)+' job'+(jobsToday+myUpcoming.length!==1?'s':'');
+  var cw=g('cs-pay-week');if(cw)cw.textContent=money(payWeek);
+  var cwj=g('cs-week-jobs');if(cwj)cwj.textContent=weekJobs+' sessions';
+  var cm=g('cs-pay-month');if(cm)cm.textContent=money(payMonth);
+  var cmj=g('cs-month-jobs');if(cmj)cmj.textContent=monthJobs+' jobs';
+  var ca=g('cs-pay-all');if(ca)ca.textContent=money(payAll);
+  var caj=g('cs-all-jobs');if(caj)caj.textContent=myLogs.length+' total';
+
+  // ── MINI CALENDAR ──
+  var calEl=g('ch-mini-cal');
+  if(calEl){
+    var yr=now.getFullYear(),mo=now.getMonth();
+    var firstDay=new Date(yr,mo,1).getDay();
+    var daysInMonth=new Date(yr,mo+1,0).getDate();
+    var cal='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:3px;overflow:hidden">';
+    ['S','M','T','W','T','F','S'].forEach(function(d){cal+='<div style="background:var(--surface);padding:4px 2px;text-align:center;font-size:9px;font-weight:700;color:var(--text3)">'+d+'</div>';});
+    for(var ci=0;ci<firstDay;ci++)cal+='<div style="background:var(--surface);min-height:38px"></div>';
+    for(var cd=1;cd<=daysInMonth;cd++){
+      var cds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(cd).padStart(2,'0');
+      var cdJobs=WDB.jobs.filter(function(j){return j.date===cds;});
+      var myDay=cdJobs.filter(isMyJob);
+      var openDay=cdJobs.filter(function(j){return jobIsAvailable&&jobIsAvailable(j);});
+      var isToday=cds===td;
+      cal+='<div onclick="navTo(\'schedule\')" style="background:var(--surface2);min-height:38px;padding:3px;cursor:pointer;'+(isToday?'outline:1.5px solid var(--accent);outline-offset:-1.5px':'')+'">' +
+        '<div style="font-size:10px;font-weight:700;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;'+(isToday?'background:var(--accent);color:#000':'color:var(--text3)')+';margin-bottom:1px">'+cd+'</div>'+
+        myDay.slice(0,2).map(function(){return'<div style="height:3px;background:var(--accent);border-radius:1px;margin-bottom:1px"></div>';}).join('')+
+        openDay.slice(0,2).map(function(){return'<div style="height:3px;background:rgba(120,200,255,.5);border-radius:1px;margin-bottom:1px"></div>';}).join('')+
+      '</div>';
+    }
+    cal+='</div>';
+    cal+='<div style="display:flex;gap:10px;margin-top:5px;font-size:10px;color:var(--text3)">'+
+      '<span><span style="display:inline-block;width:8px;height:3px;background:var(--accent);border-radius:1px;margin-right:3px"></span>My job</span>'+
+      '<span><span style="display:inline-block;width:8px;height:3px;background:rgba(120,200,255,.5);border-radius:1px;margin-right:3px"></span>Available</span>'+
+    '</div>';
+    calEl.innerHTML=cal;
+  }
+
+  // ── TODAY'S JOBS ──
+  var todayJbs=WDB.jobs.filter(function(j){return j.date===td&&isMyJob(j);}).sort(function(a,b){return(a.time||'').localeCompare(b.time||'');});
+  var tLabel=g('ch-today-label');if(tLabel)tLabel.textContent='Today\'s Jobs ('+(todayJbs.length||0)+')';
+  var tPay=g('ch-today-pay');if(tPay&&todayJbs.length)tPay.textContent=money(todayJbs.reduce(function(s,j){return s+Number(j.cleanerPay||0);},0))+' your pay';
+  var jl=g('cleaner-jobs-list');
+  if(jl){
+    jl.innerHTML=todayJbs.length?todayJbs.map(buildJobCard).join('')+
+      (todayJbs.length>0?'<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px">'+money(todayJbs.reduce(function(s,j){return s+Number(j.price||0);},0))+' revenue generated today</div>':''):
+      '<div style="background:var(--surface3);border-radius:4px;padding:14px;text-align:center;margin-bottom:10px">'+
+        '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:3px">No jobs today</div>'+
+        '<div style="font-size:11px;color:var(--text3)">Bid on open jobs below to fill your schedule.</div>'+
+      '</div>';
+  }
+
+  // ── OPEN JOBS TO PICK UP ──
+  var openJobs=WDB.jobs.filter(function(j){return j.status==='upcoming'&&j.date>=td&&jobIsAvailable&&jobIsAvailable(j)&&!(jobIsPending&&jobIsPending(j));}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  var oc=g('ch-open-count');if(oc)oc.textContent=openJobs.length+' available';
+  var ol=g('open-jobs-list');
+  if(ol){
+    var top4=openJobs.slice(0,4);
+    ol.innerHTML=top4.length?top4.map(function(j){
+      return '<div class="card" style="border:1px solid rgba(120,200,255,.35);border-left:4px solid rgba(120,200,255,.8);background:rgba(77,166,255,.04);padding:12px;margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+          '<div>'+
+            '<div style="display:flex;align-items:center;gap:6px">'+
+              '<div style="font-weight:700;font-size:13px">'+esc(j.client)+'</div>'+
+              '<span style="font-size:9px;font-weight:700;background:rgba(120,200,255,.2);color:#7dd3fc;border:1px solid rgba(120,200,255,.4);padding:1px 5px;border-radius:2px">OPEN</span>'+
+            '</div>'+
+            '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+j.date+(j.time?' &bull; '+fmtTime(j.time):'')+'</div>'+
+            (j.address?'<div style="font-size:11px;color:var(--text2);margin-top:1px">'+esc(j.address.split(',')[0])+'</div>':'')+
+            (j.notes?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+esc(j.notes)+'</div>':'')+
+          '</div>'+
+          '<div style="text-align:right;margin-left:10px;flex-shrink:0">'+
+            '<div style="font-size:18px;font-weight:700;color:var(--accent)">'+money(j.price)+'</div>'+
+            '<div style="font-size:10px;color:var(--text3)">job price</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          '<button class="btn btn-ghost btn-sm" data-jid="'+j.id+'" onclick="claimJob(this.dataset.jid)">Claim</button>'+
+          '<button class="btn btn-primary btn-sm" style="background:rgba(100,180,255,.85);border-color:transparent;color:#000" data-jid="'+j.id+'" onclick="openBidModal(this.dataset.jid)">Place Bid</button>'+
+        '</div>'+
+      '</div>';
+    }).join('')+(openJobs.length>4?'<button class="btn btn-ghost btn-full btn-sm" onclick="navTo(\'schedule\')">View all '+openJobs.length+' open jobs →</button>':'')
+    :'<div style="font-size:12px;color:var(--text3);padding:8px 0">No open shifts right now. Check back soon.</div>';
+  }
+
+  // ── IMPROVEMENT TIPS ──
+  var tips=g('ch-tips');
+  if(tips){
+    var tipList=[];
+    var avgJobVal=myLogs.length>0?Math.round(payAll/myLogs.length):0;
+    var pendingBids=WDB.jobBids.filter(function(b){return b.worker_email===myEmail&&b.status==='pending';}).length;
+    var weekTarget=500;
+    var weekGap=weekTarget-payWeek;
+    if(weekGap>0)tipList.push({icon:'📈',text:'You\'re '+money(weekGap)+' away from '+money(weekTarget)+' this week. Pick up '+ Math.ceil(weekGap/100)+' more job'+(Math.ceil(weekGap/100)!==1?'s':'')+'.'});
+    if(openJobs.length>0)tipList.push({icon:'💼',text:openJobs.length+' open job'+(openJobs.length!==1?'s are':' is')+' available. Bidding increases your chances of getting assigned.'});
+    if(pendingBids>0)tipList.push({icon:'⏳',text:'You have '+pendingBids+' pending bid'+(pendingBids!==1?'s':'')+'. Caleb reviews bids daily.'});
+    if(avgJobVal>0&&avgJobVal<60)tipList.push({icon:'💡',text:'Your avg pay per job is '+money(avgJobVal)+'. Try negotiating a higher flat rate on larger jobs.'});
+    if(monthJobs===0)tipList.push({icon:'🚀',text:'No jobs logged this month yet. Claim a job from the list above to get started.'});
+    if(!tipList.length)tipList.push({icon:'⭐',text:'Great work! You\'re keeping up a solid schedule. Check for more open jobs to boost your earnings.'});
+    tips.innerHTML=tipList.map(function(t){
+      return '<div style="display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:11px 13px;margin-bottom:8px">'+
+        '<div style="font-size:20px;flex-shrink:0">'+t.icon+'</div>'+
+        '<div style="font-size:12px;color:var(--text2);line-height:1.5">'+t.text+'</div>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   NAV — add settings to routing
+══════════════════════════════════════════════════════ */
+
+function schedCalClick(){navTo("schedule");}
+
+/* ══════════════════════════════════════════════════════
+   FEATURE 9: JOB PHOTOS — Before & After
+   Workers upload photos from their phone camera
+   Photos stored as compressed base64 in job record
+══════════════════════════════════════════════════════ */
+var _photoJobId=null;
+var _photoType='before'; // 'before' or 'after'
+
+function openPhotoCapture(jobId, type){
+  _photoJobId=jobId;
+  _photoType=type||'before';
+  g('photo-type-label').textContent=(type==='after'?'After':'Before')+' Photo';
+  g('photo-input').value='';
+  g('photo-preview').style.display='none';
+  g('photo-preview').src='';
+  document.getElementById('photo-modal').classList.add('open');
+}
+
+function handlePhotoSelect(input){
+  var file=input.files[0];
+  if(!file)return;
+  if(file.size>10*1024*1024){alert('Photo too large. Please use a photo under 10MB.');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    // Compress image to ~400px wide for storage
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      var maxW=600,maxH=600;
+      var w=img.width,h=img.height;
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+      if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      var compressed=canvas.toDataURL('image/jpeg',0.75);
+      g('photo-preview').src=compressed;
+      g('photo-preview').style.display='block';
+      g('photo-preview')._data=compressed;
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitPhoto(){
+  var preview=g('photo-preview');
+  if(!preview||!preview._data){alert('Please select a photo first.');return;}
+  var j=WDB.jobs.find(function(x){return x.id==_photoJobId;});
+  if(!j){alert('Job not found.');return;}
+  if(!j.photos)j.photos={};
+  j.photos[_photoType]=preview._data;
+  j.photos[_photoType+'Time']=new Date().toISOString();
+  j.photos[_photoType+'Worker']=WORKER.name;
+  showLoading();
+  try{
+    var rows=await sbFetch('crm_data',{select:'jobs',eq:{id:'main'}});
+    if(rows&&rows[0])await sbPatch('crm_data',{jobs:WDB.jobs},{id:'main'});
+    addNotification((_photoType==='after'?'After':'Before')+' photo saved for '+j.client);
+    document.getElementById('photo-modal').classList.remove('open');
+    renderHome();
+  }catch(e){_warn('Photo save error:',e);alert('Could not save photo. Try again.');}
+  hideLoading();
+}
+
+
+/* ── Offline mode for Worker app ── */
+var _workerOnline=navigator.onLine;
+var _offlineCacheKey='nl_worker_offline_v1';
+
+function initWorkerOffline(){
+  window.addEventListener('online',function(){
+    _workerOnline=true;
+    var si=g('sync-indicator');
+    if(si){si.style.background='';si.title='Online';}
+    var st=g('sync-status-text');if(st)st.textContent='Synced';
+    loadData(); // re-sync
+  });
+  window.addEventListener('offline',function(){
+    _workerOnline=false;
+    var si=g('sync-indicator');
+    if(si){si.style.background='#facc15';si.title='Offline — changes queued';}
+    var st=g('sync-status-text');if(st)st.textContent='Offline — will sync when connected';
+  });
+}
+
+function cacheWorkerData(){
+  try{
+    localStorage.setItem(_offlineCacheKey,JSON.stringify({wdb:WDB,ts:Date.now()}));
+  }catch(e){_warn('Worker cache failed:',e);}
+}
+
+function loadWorkerCache(){
+  try{
+    var c=localStorage.getItem(_offlineCacheKey);
+    if(!c)return false;
+    var obj=JSON.parse(c);
+    if(!obj||!obj.wdb)return false;
+    var age=Math.round((Date.now()-obj.ts)/60000);
+    Object.keys(obj.wdb).forEach(function(k){if(obj.wdb[k]!==null)WDB[k]=obj.wdb[k];});
+    var st=g('sync-status-text');
+    if(st)st.textContent='Offline (cached '+age+'m ago)';
+    return true;
+  }catch(e){return false;}
+}
+
+/* INIT */
+window.addEventListener('load',function(){
+  seedDevinProfile().catch(function(){});
+  // Build chat input
+  var ca=g('chat-input-area');
+  if(ca){
+    ca.innerHTML='<input id="chat-input" placeholder="Message your team..." autocomplete="off" style="flex:1;padding:10px 12px;background:var(--surface3);border:1px solid var(--border2);border-radius:20px;color:var(--text);font-family:inherit;font-size:13px;outline:none"><button class="btn btn-primary btn-sm" onclick="sendMessage()" style="flex-shrink:0">Send</button>';
+    var ci=g('chat-input');
+    if(ci)ci.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+  }
+  if(checkSavedSession()){afterAuth();}
+});
+</script>
+
+<!-- Chat input bar -->
+<div id="chat-input-area" style="display:none;position:fixed;bottom:calc(56px + env(safe-area-inset-bottom,0px));left:0;right:0;padding:8px 12px;background:var(--surface2);border-top:1px solid var(--border);display:none;gap:8px;align-items:center"></div>
+
+
+<!-- ADD WORKER MODAL -->
+<div class="modal-overlay" id="add-worker-modal" onclick="if(event.target===this)closeModal('add-worker-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Worker</div>
+    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="aw-name" placeholder="Employees full name" autocomplete="off"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="aw-email" type="email" placeholder="Their email address" autocomplete="off"></div>
+    <div class="form-group"><label class="form-label">Role</label>
+      <select class="form-input" id="aw-role">
+        <option value="cleaner">Window Cleaner</option>
+        <option value="knocker">Door Knocker</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="createWorker()">Add Worker</button>
+    <div id="aw-result" style="display:none;margin-top:12px;padding:12px;background:var(--surface3);border-radius:4px;font-size:12px;color:var(--text2);line-height:1.7"></div>
+    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:8px" onclick="closeModal('add-worker-modal')">Close</button>
+  </div>
+</div>
+
+
+<!-- ADD WORKER MODAL -->
+<div class="modal-overlay" id="add-worker-modal" onclick="if(event.target===this)closeModal('add-worker-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Worker</div>
+    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="aw-name" placeholder="Employee full name" autocomplete="off"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="aw-email" type="email" placeholder="Their email address" autocomplete="off"></div>
+    <div class="form-group"><label class="form-label">Role</label>
+      <select class="form-input" id="aw-role">
+        <option value="cleaner">Window Cleaner</option>
+        <option value="knocker">Door Knocker</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="createWorker()">Add Worker</button>
+    <div id="aw-result" style="display:none;margin-top:12px;padding:12px;background:var(--surface3);border-radius:4px;font-size:12px;color:var(--text2);line-height:1.7"></div>
+    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:8px" onclick="closeModal('add-worker-modal')">Done</button>
+  </div>
+</div>
+
+
+<!-- BID MODAL -->
+<div class="modal-overlay" id="bid-modal" onclick="if(event.target===this)closeModal('bid-modal')">
+  <div class="modal" style="max-height:92vh">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Place a Bid</div>
+    <div id="bid-job-summary" style="background:var(--surface3);border-radius:4px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2)"></div>
+
+    <!-- Pay type selector -->
+    <div class="form-group">
+      <label class="form-label">How do you want to be paid?</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">
+        <button class="bid-type-btn btn btn-ghost btn-sm" id="bid-type-hourly" onclick="selectBidType('hourly')" style="flex-direction:column;gap:2px;min-height:54px">
+          <span style="font-size:16px">⏱</span>
+          <span style="font-size:11px;font-weight:600">Hourly</span>
+        </button>
+        <button class="bid-type-btn btn btn-ghost btn-sm" id="bid-type-commission" onclick="selectBidType('commission')" style="flex-direction:column;gap:2px;min-height:54px">
+          <span style="font-size:16px">%</span>
+          <span style="font-size:11px;font-weight:600">Commission</span>
+        </button>
+        <button class="bid-type-btn btn btn-ghost btn-sm" id="bid-type-flat" onclick="selectBidType('flat')" style="flex-direction:column;gap:2px;min-height:54px">
+          <span style="font-size:16px">$</span>
+          <span style="font-size:11px;font-weight:600">Flat Rate</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Hourly fields -->
+    <div id="bid-hourly-fields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Hourly Rate ($/hr)</label>
+        <input class="form-input" id="bid-hourly-rate" type="number" min="0" step="0.50" placeholder="e.g. 18" oninput="recalcBid()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estimated Hours</label>
+        <input class="form-input" id="bid-hourly-hours" type="number" min="0.5" step="0.5" placeholder="e.g. 2.5" oninput="recalcBid()">
+      </div>
+    </div>
+
+    <!-- Commission fields -->
+    <div id="bid-commission-fields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Commission % of Job Price</label>
+        <input class="form-input" id="bid-commission-pct" type="number" min="1" max="100" placeholder="e.g. 30" oninput="recalcBid()">
+      </div>
+    </div>
+
+    <!-- Flat rate fields -->
+    <div id="bid-flat-fields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Your Flat Rate ($)</label>
+        <input class="form-input" id="bid-flat-amount" type="number" min="0" placeholder="e.g. 75" oninput="recalcBid()">
+      </div>
+    </div>
+
+    <!-- Live preview -->
+    <div id="bid-preview" style="display:none;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:4px;padding:12px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Your Bid Preview</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:var(--accent)" id="bid-preview-pay">$0</div>
+          <div style="font-size:11px;color:var(--text3)" id="bid-preview-desc"></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text3)">Job price</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text)" id="bid-preview-jobprice">$0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-group">
+      <label class="form-label">Note to owner (optional)</label>
+      <textarea class="form-input" id="bid-note" style="min-height:60px" placeholder="Any details about how youll do the job, equipment you have, availability, etc."></textarea>
+    </div>
+
+    <button class="btn btn-primary btn-full" style="min-height:48px;font-size:15px" onclick="submitBid()">Send Bid to Caleb</button>
+    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:8px" onclick="closeModal('bid-modal')">Cancel</button>
+  </div>
+</div>
+
+
+<!-- PHOTO CAPTURE MODAL -->
+<div class="modal-overlay" id="photo-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="photo-type-label">Before Photo</div>
+    <div style="text-align:center;margin-bottom:14px">
+      <img id="photo-preview" style="display:none;max-width:100%;max-height:260px;border-radius:6px;border:1px solid var(--border)" src="">
+    </div>
+    <label style="display:block;width:100%;margin-bottom:10px">
+      <div class="btn btn-outline btn-full" style="cursor:pointer;min-height:48px">
+        <span>📷</span> Take / Choose Photo
+      </div>
+      <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(this)">
+    </label>
+    <button class="btn btn-primary btn-full" onclick="submitPhoto()" style="min-height:48px">Save Photo</button>
+    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:8px" onclick="document.getElementById('photo-modal').classList.remove('open')">Cancel</button>
+  </div>
+</div>
+
+</body>
+</html>
